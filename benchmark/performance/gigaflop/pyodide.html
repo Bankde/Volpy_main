@@ -1,0 +1,29 @@
+<html>
+	<head>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.20.0/full/pyodide.js">
+	</head>
+	<body>
+		<script>
+    async function main() {
+      let pyodide = await loadPyodide();
+
+      let start = new Date().getMilliseconds();
+      pyodide.runPython(`
+def giga_flop():
+  x = 3.14159
+  i = 0
+  for i in range(500000000):
+    x += 5.12313123
+    x *= 0.5398394834
+  return x
+ret = giga_flop()
+      `);
+      let end = new Date().getMilliseconds();
+      console.log("Ans: " + pyodide.runPython(`print(ret)`));
+      console.log("Time: " + (end - start));
+    };
+    main();
+
+		</script>
+	</body>
+</html>

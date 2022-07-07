@@ -1,0 +1,15 @@
+function giga_flop() {
+	let x = 3.14159;
+	let i = 0;
+	for (i=0; i<500000000; i++) {
+		x += 5.12313123;
+		x *= 0.5398394834;
+	}
+	return x;
+}
+
+let start = new Date().getMilliseconds();
+let ret = giga_flop();
+let end = new Date().getMilliseconds();
+console.log("Ans: " + ret);
+console.log("Time: " + (end-start));
