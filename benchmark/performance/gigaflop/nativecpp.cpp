@@ -21,7 +21,7 @@ int main() {
 	long start = getMsTime();
 	double ret = giga_flop();
 	long end = getMsTime();
-	std::cout << "Ans: " << ret << endl;
-	std::cout << "Time: " << (end - start) << endl;
+	std::cout << "Ans: " << ret << std::endl;
+	std::cout << "Time: " << (end - start) << std::endl;
 	return 0;
 }
