@@ -9,6 +9,7 @@ chrome_options = Options()
 chrome_options.add_argument('--headless')
 chrome_options.add_argument('--no-sandbox')
 driver = webdriver.Chrome(options=chrome_options, desired_capabilities=d)
+driver.set_script_timeout(10000000);
 driver.execute_script(open("./wasmJS.js").read())
 
 for entry in driver.get_log('browser'):

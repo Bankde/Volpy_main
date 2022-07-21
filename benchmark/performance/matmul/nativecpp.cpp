@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-int* matmul(int* A, int* B, int* C, size_t size) {
+void matmul(int* A, int* B, int* C, size_t size) {
     for (int i=0; i<size; i++) {
         for (int j=0; j<size; j++) {
             int sum = 0;
@@ -40,7 +40,7 @@ int main() {
     int* C = new int[size*size];
 
 	long start = getMsTime();
-	int* ret = matmul(A, B, C, size);
+	matmul(A, B, C, size);
 	long end = getMsTime();
 
 	std::cout << "Time: " << (end - start) << std::endl;

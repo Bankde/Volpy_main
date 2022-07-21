@@ -5,6 +5,7 @@ import time
 
 d = DesiredCapabilities.CHROME
 d['goog:loggingPrefs'] = {'browser': 'ALL'}
+d['pageLoadStrategy'] = "none"
 
 chrome_options = Options()
 chrome_options.add_argument('--headless')
