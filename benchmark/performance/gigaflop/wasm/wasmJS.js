@@ -1,4 +1,4 @@
-var wasmB64 =  "wasm_b64_here";
+var wasmB64 = "wasm_b64_here";
 
 function _base64ToArrayBuffer(base64) {
   let binary_string = window.atob(base64);
