@@ -1,0 +1,49 @@
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.20.0/full/pyodide.js"></script>
+  </head>
+  <body>
+    <script>
+      var wasmB64 =  "AGFzbQEAAAAADwhkeWxpbmsuMAEEAAAAAAEQA2ABfwF/YAAAYAN/f38BfwIcAgNlbnYGbWFsbG9jAAADZW52Bm1lbW9yeQIAAAMDAgECBzkDEV9fd2FzbV9jYWxsX2N0b3JzAAEYX193YXNtX2FwcGx5X2RhdGFfcmVsb2NzAAEGbWF0bXVsAAIKhgICAwABC/8BAQl/IAIgAmxBAnQQACEIIAJBAEoEQCACQX5xIQogAkEBcSELA0AgAiAHbCEGQQAhBANAQQAhA0EAIQVBACEJIAJBAUcEQANAIAEgAiADbCAEakECdGooAgAgACADIAZqQQJ0aigCAGwgBWogASADQQFyIgUgAmwgBGpBAnRqKAIAIAAgBSAGakECdGooAgBsaiEFIANBAmohAyAJQQJqIgkgCkcNAAsLIAggBCAGakECdGogCwR/IAEgAiADbCAEakECdGooAgAgACADIAZqQQJ0aigCAGwgBWoFIAULNgIAIARBAWoiBCACRw0ACyAHQQFqIgcgAkcNAAsLIAgL";
+
+function _base64ToArrayBuffer(base64) {
+  let binary_string = window.atob(base64);
+  let len = binary_string.length;
+  let bytes = new Uint8Array(len);
+  for (let i=0; i<len; i++) {
+    bytes[i] = binary_string.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
+var wasmByte = _base64ToArrayBuffer(wasmB64);
+
+function genMat(size) {
+        let C = [];
+        for (let i=0; i<size*size; i++) {
+                C.push(Math.round(Math.random() * 20) - 10);
+        }
+        return C;
+}
+
+async function testWasm() {
+  var size = 125;
+  let importObject = {};
+  var instance = await WebAssembly.instantiate(wasmByte, importObject);
+  var matmul = instance.instance.exports.matmul;
+
+  console.log("Testing size: " + size);
+  let A = genMat(size);
+  let B = genMat(size);
+  let start = new Date().getTime();
+  let ret = matmul(A, B, size);
+  let end = new Date().getTime();
+  console.log("Ans: " + ret);
+  console.log("Time: " + (end-start));
+}
+
+testWasm();
+    </script>
+    Hello World
+    </body>
+</html>

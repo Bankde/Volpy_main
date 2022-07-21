@@ -16,6 +16,7 @@
       apt:
         name:
           - unzip
+          - bzip2
           - libdbus-glib-1-2
           - libegl1-mesa
           - gcc
@@ -68,19 +69,19 @@
             executable: /home/bankde/.conda/bin/conda
         - name: Check conda env exist
           stat:
-            path: /home/bankde/.conda/envs/Pyvol
-          register: Pyvol
+            path: /home/bankde/.conda/envs/Volpy
+          register: Volpy 
         - name: Create conda env
           conda:
             name: python
             version: '3.10'
-            environment: Pyvol
+            environment: Volpy 
             state: present
             executable: /home/bankde/.conda/bin/conda
-          when: not Pyvol.stat.exists
+          when: not Volpy.stat.exists
         - name: Pip install
           pip:
-            executable: /home/bankde/.conda/envs/Pyvol/bin/pip
+            executable: /home/bankde/.conda/envs/Volpy/bin/pip
             name:
               - ray==1.13.0
               - requests
@@ -208,7 +209,10 @@
     - name: Prepare cpp test
       become: true
       become_user: bankde
-      shell: "g++ /home/bankde/benchmark/performance/gigaflop/nativecpp.cpp -o /home/bankde/benchmark/performance/gigaflop/nativecpp.out -O2"
+      shell: "{{ item }}"
+      with_items:
+        - "g++ /home/bankde/benchmark/performance/gigaflop/nativecpp.cpp -o /home/bankde/benchmark/performance/gigaflop/nativecpp.out -O2"
+        - "g++ /home/bankde/benchmark/performance/matmul/nativecpp.cpp -o /home/bankde/benchmark/performance/matmul/nativecpp.out -O2"
 
     - name: Prepare wasm test
       become: true
@@ -220,9 +224,21 @@
             executable: /bin/bash
         - slurp:
             src: /home/bankde/benchmark/performance/gigaflop/wasm/wasmFunc.wasm
-          register: wasm_b64_data
-        - name: giga_flop wasm replace in javascript
+          register: gigaflop_wasm_b64
+        - name: giga_flop wasm replace in js
           replace: 
             path: /home/bankde/benchmark/performance/gigaflop/wasm/wasmJS.js
             regexp: "wasm_b64_here"
-            replace: "{{ wasm_b64_data.content }}"
+            replace: "{{ gigaflop_wasm_b64.content }}"
+        - name: matmul wasm compile
+          shell: '. "/opt/bin/emsdk/emsdk_env.sh" && emcc /home/bankde/benchmark/performance/matmul/wasm/wasmFunc.c -o /home/bankde/benchmark/performance/matmul/wasm/wasmFunc.wasm -O2 -s WASM=1 -s SIDE_MODULE=1'
+          args:
+            executable: /bin/bash
+        - slurp:
+            src: /home/bankde/benchmark/performance/matmul/wasm/wasmFunc.wasm
+          register: matmul_wasm_b64
+        - name: matmul wasm replace in js
+          replace:
+            path: /home/bankde/benchmark/performance/matmul/wasm/wasmJS.js
+            regexp: "wasm_b64_here"
+            replace: "{{ matmul_wasm_b64.content }}"

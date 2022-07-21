@@ -1,0 +1,45 @@
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.20.0/full/pyodide.js"></script>
+  </head>
+  <body>
+    <script>
+      async function main() {
+              let pyodide = await loadPyodide();
+              console.log("Done initialize pyodide");
+              await pyodide.loadPackage('numpy')
+              pyodide.runPython(`
+import numpy as np
+
+size = 125
+print("Test for: %d" % size)
+
+def matmul(A, B, C):
+  # Assume 2 identical-size NxN matrix
+  N = A.shape[0]
+  for i in range(N):
+      for j in range(N):
+          sum = 0
+          for k in range(N):
+              sum += A[i][k] * B[k][j]
+          C[i][j] = sum
+
+def genMat(size):
+  # [-10,10]
+  return np.random.randint(-10, 11, size=(size, size))
+
+A = genMat(size)
+B = genMat(size)
+C = np.zeros((size,size))
+`)
+              let start = new Date().getTime();
+              pyodide.runPython(`ret = matmul(A, B, C)`);
+              let end = new Date().getTime();
+              console.log("Time: " + (end - start));
+              document.title = "Done";
+            };
+      main();
+    </script>
+    Hello World
+    </body>
+</html>
