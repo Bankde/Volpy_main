@@ -5,29 +5,34 @@
   roles:
     - role: evandam.conda
   tasks:
-    - name: Update and upgrade apt
-      register: updatesys
-      apt:
-        name: "*"
-        state: latest
-        update_cache: yes
+    - name: root install
+      become: true 
+      become_exe: "sudo su -"
+      become_method: su
+      block:
+      - name: Update and upgrade apt
+        register: updatesys
+        apt:
+          name: "*"
+          state: latest
+          update_cache: yes
 
-    - name: Install apt
-      apt:
-        name:
-          - unzip
-          - bzip2
-          - libdbus-glib-1-2
-          - libegl1-mesa
-          - gcc
-          - g++
-
-    - name: Create an user
-      user:
-        name: bankde
-        shell: /bin/bash
-        createhome: yes
-        home: /home/bankde
+      - name: Install apt
+        apt:
+          name:
+            - unzip
+            - bzip2
+            - libdbus-glib-1-2
+            - libegl1-mesa
+            - gcc
+            - g++
+            - python3-pip
+            - build-essential
+            - libssl-dev
+            - libffi-dev
+            - python-dev
+            - git
+            - screen
 
     - name: Init .vimrc
       become: true
@@ -58,6 +63,11 @@
           shell: /home/bankde/.conda/bin/conda init --all
       when: not conda.stat.exists
 
+    - name: Install pyopenssl
+      pip:
+        name:
+          - pyopenssl
+
     - name: Update conda and pip
       become: true
       become_user: bankde
@@ -79,7 +89,7 @@
             state: present
             executable: /home/bankde/.conda/bin/conda
           when: not Volpy.stat.exists
-        - name: Pip install
+        - name: Conda pip install
           pip:
             executable: /home/bankde/.conda/envs/Volpy/bin/pip
             name:
@@ -93,6 +103,7 @@
               - dill==0.3.5.1
               - aiohttp
               - python-socketio
+              - pyopenssl
 
     - name: Check opt/bin directory
       stat:
@@ -100,9 +111,13 @@
       register: optbin
 
     - name: Create opt/bin directory
+      become: true
+      become_exe: "sudo su -"
+      become_method: su
       file:
         path: /opt/bin
         state: directory
+        mode: '777' # Test server
 
     - name: Add optbin to profile
       become: true
@@ -111,15 +126,18 @@
       when: not optbin.stat.exists
 
     - name: Install chrome and firefox
+      become: true
+      become_exe: "sudo su -"
+      become_method: su
       block:
-        - get_url: url="https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_103.0.5060.53-1_amd64.deb" dest="/root/chrome.deb"
-        - get_url: url="https://chromedriver.storage.googleapis.com/103.0.5060.53/chromedriver_linux64.zip" dest="/root/chromedriver.zip"
-        - shell: apt install -y --allow-downgrades /root/chrome.deb
-        - shell: unzip -o /root/chromedriver.zip -d /opt/bin/
-        - get_url: url="https://ftp.mozilla.org/pub/firefox/releases/102.0esr/linux-x86_64/en-US/firefox-102.0esr.tar.bz2" dest="/root/firefox.tar.bz2"
-        - get_url: url="https://github.com/mozilla/geckodriver/releases/download/v0.31.0/geckodriver-v0.31.0-linux64.tar.gz" dest="/root/geckodriver.tar.gz"
-        - shell: tar xvf /root/firefox.tar.bz2 -C /opt/bin/
-        - shell: tar xvf /root/geckodriver.tar.gz -C /opt/bin/
+        - get_url: url="https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_103.0.5060.53-1_amd64.deb" dest="/tmp/chrome.deb"
+        - get_url: url="https://chromedriver.storage.googleapis.com/103.0.5060.53/chromedriver_linux64.zip" dest="/tmp/chromedriver.zip"
+        - shell: apt install -y --allow-downgrades /tmp/chrome.deb
+        - shell: unzip -o /tmp/chromedriver.zip -d /opt/bin/
+        - get_url: url="https://ftp.mozilla.org/pub/firefox/releases/102.0esr/linux-x86_64/en-US/firefox-102.0esr.tar.bz2" dest="/tmp/firefox.tar.bz2"
+        - get_url: url="https://github.com/mozilla/geckodriver/releases/download/v0.31.0/geckodriver-v0.31.0-linux64.tar.gz" dest="/tmp/geckodriver.tar.gz"
+        - shell: tar xvf /tmp/firefox.tar.bz2 -C /opt/bin/
+        - shell: tar xvf /tmp/geckodriver.tar.gz -C /opt/bin/
 
     - name: Setup jupyter
       block:

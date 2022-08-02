@@ -1,0 +1,30 @@
+---
+
+- name: Setup benchmark node 
+  hosts: 'all'
+  become: true
+  become_exe: "sudo su -"
+  become_method: su
+  tasks:
+    - name: Update and upgrade apt
+      register: updatesys
+      apt:
+        name: "*"
+        state: latest
+        update_cache: yes
+
+    - name: Install apt
+      apt:
+        name:
+          - coturn
+
+    - name: Add coturn config
+      blockinfile:
+        path: /etc/turnserver.conf
+        block: |
+          fingerprint
+          user=test:test@1234
+          lt-cred-mech
+          log-file=/var/log/turnserver/turnserver.log
+          simple-log
+          external-ip={{ansible_default_ipv4.address}}
