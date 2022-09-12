@@ -156,26 +156,26 @@
         group: bankde
         mode: preserve
 
-        #    - name: Run jupyter
-        #      block:
-        #        - name: jupyter background
-        #          shell: jupyter notebook --certfile=mycert.pem --keyfile=mykey.key >/tmp/jupyter_token 2>&1
-        #          args:
-        #            chdir: /home/bankde
-        #          async: 2592000
-        #          poll: 0
-        #        - name: jupyter starting
-        #          pause:
-        #            seconds: 5
-        #        - name: jupyter token
-        #          block:
-        #            - name: read file
-        #              command: "tail -5 /tmp/jupyter_token"
-        #              register: jupyter_token
-        #            - debug:
-        #                var: jupyter_token.stdout_lines
-        #      become: true 
-        #      become_user: bankde
+    - name: Run jupyter
+      block:
+        - name: jupyter background
+          shell: jupyter notebook --certfile=mycert.pem --keyfile=mykey.key >/tmp/jupyter_token 2>&1
+          args:
+            chdir: /home/bankde
+          async: 2592000
+          poll: 0
+        - name: jupyter starting
+          pause:
+            seconds: 5
+        - name: jupyter token
+          block:
+            - name: read file
+              command: "tail -5 /tmp/jupyter_token"
+              register: jupyter_token
+            - debug:
+                var: jupyter_token.stdout_lines
+      become: true 
+      become_user: bankde
 
     - name: Install emscripten
       block:
