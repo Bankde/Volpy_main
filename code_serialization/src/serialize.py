@@ -27,7 +27,8 @@ target_classes = dict([(name, cls) for name, cls in target_mod.__dict__.items() 
 for target_class, cls in target_classes.items():
     o = cls()
     target_function = o.getFunction()
-    pickled_obj[target_class] = base64.b64encode(pickleModule.dumps(target_function)).decode("utf-8")
+    bin_obj = pickleModule.dumps(target_function)
+    pickled_obj[target_class] = base64.b64encode(bin_obj).decode("utf-8")
     # Test after serialization to prevent alterting of global variables.
     o.testObj(target_function)
 

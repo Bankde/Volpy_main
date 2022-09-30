@@ -4,7 +4,7 @@ tc = unittest.TestCase()
 class TestClass():
     def getFunction(self):
         """
-        Inner function with closure (LOAD_DEREF) is considered local vars
+        my_add is pickled as source code of func_add_with
         """
         def func_add_with(c):
             def my_add(a):

@@ -31,3 +31,18 @@ class TestClass():
         f1, f2 = obj
         tc.assertEqual(f1(), 13)
         tc.assertEqual(f2(), 15)
+
+# Incorrect closure scope after deserialization (thus no exception after deserialize)
+class TestClass2():
+    def getFunction(self):
+        def f():
+            if False:  # pragma: no cover
+                cell = None
+            def g():
+                cell  # NameError, unbound free variable
+            return g
+        return f()
+
+    def testObj(self, obj):
+        g1 = obj
+        tc.assertRaises(NameError, g1)
