@@ -1,0 +1,78 @@
+FAILED codepickle_test.py::CodePickleTest::test_abc - NameError: name 'abc' is not defined
+FAILED codepickle_test.py::CodePickleTest::test_abstracts - NameError: name 'abc' is not defined
+    // decorator
+FAILED codepickle_test.py::CodePickleTest::test_bound_classmethod - AttributeError: 'classmethod' object has no attribute '__globals__'
+FAILED codepickle_test.py::CodePickleTest::test_classmethod - AttributeError: 'staticmethod' object has no attribute '__globals__'
+    // decorator
+FAILED codepickle_test.py::CodePickleTest::test_final_or_classvar_misdetection - AttributeError: 'property' object has no attribute '__dict__'
+    // decorator (github issue)
+FAILED codepickle_test.py::CodePickleTest::test_literal_misdetection - AttributeError: 'property' object has no attribute '__dict__'
+    // property (github issue)
+FAILED codepickle_test.py::CodePickleTest::test_locally_defined_class_with_type_hints - NameError: name 'type_' is not defined
+    // type hint is similar to decorator issue
+FAILED codepickle_test.py::CodePickleTest::test_property - AttributeError: 'property' object has no attribute '__dict__'
+    // Fail due to decorator, function has become a 'property object' during exec.
+    //      Unlike cloudpickle, which function becomes 'property object' through state setter.
+FAILED codepickle_test.py::CodePickleTest::test_tornado_coroutine - NameError: name 'gen' is not defined
+    // specific object
+
+
+
+FAILED codepickle_test.py::CodePickleTest::test_cycle_in_classdict_globals - OSError: could not get source code
+    // test tried to dump a function that is generated codepickle.loads
+    //      The loads function overwrite the existing class's method but this behavior is consistent with cloudpickle
+FAILED codepickle_test.py::CodePickleTest::test_dynamic_module - OSError: could not get source code
+    // object from "exec" - unable to get source code
+FAILED codepickle_test.py::CodePickleTest::test_dynamic_module_with_unpicklable_builtin - OSError: could not get source code
+    // object from "exec" - unable to get source code (github issue)
+FAILED codepickle_test.py::CodePickleTest::test_extended_arg - OSError: could not get source code
+    // object from "exec" - unable to get source code (github issue)
+FAILED codepickle_test.py::CodePickleTest::test_interactive_dynamic_type_and_remote_instances - RuntimeError: script errored with output:
+    // test tried to dump a function that is generated codepickle.loads
+FAILED codepickle_test.py::CodePickleTest::test_interactively_defined_global_variable - RuntimeError: script errored with output:
+    // test tried to dump a function that is generated codepickle.loads
+FAILED codepickle_test.py::CodePickleTest::test_locally_defined_enum - OSError: could not get source code
+    // work fine, except the part that tries to dumps object from "exec"
+FAILED codepickle_test.py::CodePickleTest::test_instance_with_slots - OSError: could not get source code
+    // test tried to dump a function that is generated codepickle.loads
+FAILED codepickle_test.py::CodePickleTest::test_deterministic_pickle_bytes_for_function - RuntimeError: Subprocess returned 1: Traceback (most recent call last):
+    // test tried to dump a function that is generated codepickle.loads
+
+
+
+FAILED codepickle_test.py::CodePickleTest::test_dataclass - OSError: could not get source code
+    // specific object
+FAILED codepickle_test.py::CodePickleTest::test_namedtuple - OSError: could not get source code
+    // failed due to trying to getsource on tuple method (__new__)
+    //      This could be easily fixed by adding dispatch method for tuple or an extra condition to handle tuple method
+
+
+FAILED codepickle_test.py::CodePickleTest::test_empty_cell_preserved - Failed: DID NOT RAISE <class 'NameError'>
+    // closure
+FAILED codepickle_test.py::CodePickleTest::test_dynamically_generated_class_that_uses_super - RuntimeError: super(): __class__ cell not found
+    // fail at super
+
+
+FAILED codepickle_test.py::CodePickleTest::test_function_module_name - KeyError: '<lambda>'
+    // lambda expression
+FAILED codepickle_test.py::CodePickleTest::test_interactive_dynamic_type_and_stored_remote_instances - RuntimeError: script errored with output:
+    // test uses lambda expression
+    //      assert not w.run(lambda obj_id: isinstance(lookup(obj_id), A), id1)
+FAILED codepickle_test.py::CodePickleTest::test_interactively_defined_function - RuntimeError: script errored with output:
+    // test uses lambda expression
+    //      subprocess_pickle_echo(lambda x: x**2, protocol={protocol})  
+FAILED codepickle_test.py::CodePickleTest::test_lambda -   File "<string>", line 1
+    // lambda expression
+FAILED codepickle_test.py::CodePickleTest::test_locally_defined_function_and_class - KeyError: '<lambda>'
+    // lambda
+FAILED codepickle_test.py::CodePickleTest::test_nested_lambdas - KeyError: '<lambda>'
+    // lambda
+FAILED codepickle_test.py::CodePickleTest::test_pickle_constructs_from_installed_packages_registered_for_pickling_by_value - NameError: name 'w' is not defined
+    // lambda
+FAILED codepickle_test.py::CodePickleTest::test_pickle_constructs_from_module_registered_for_pickling_by_value - NameError: name '_mock_interactive_session_cwd' is not defined
+    // lambda
+
+
+
+FAILED codepickle_test.py::CodePickleTest::test_module_importability - OSError: could not get source code
+    // not support (ref-value config)
