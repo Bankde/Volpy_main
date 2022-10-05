@@ -18,7 +18,7 @@ def logToResult(key, value, test_name=None):
         data = {}
 
     if test_name == None:
-        test_name = sys.modules['__main__'].__file__.split("/")[1].split("-")[0]
+        test_name = sys.modules['__main__'].__file__.split("/")[-1].split("-")[0]
     if test_name not in data:
         data[test_name] = {}
     data[test_name][key] = value
@@ -36,7 +36,7 @@ def myload():
         return pickle.load(f)
     
 def time(run, setup="""""", globals=globals()):
-    # Time count for 1000 runs, then repeat 3 times and take minimum
-    t = min(timeit.Timer(run, setup=setup, globals=globals).repeat(3,1000))
+    # Time count for 1000 runs, then repeat 100 times, return array of 100 length
+    t = timeit.Timer(run, setup=setup, globals=globals).repeat(100,1000)
     logToResult("time", t)
     return t
