@@ -167,12 +167,21 @@
       become_user: bankde
 
     - name: Clone work
-      copy:
-        src: benchmark
-        dest: /home/bankde/
-        owner: bankde
-        group: bankde
-        mode: preserve
+      block:
+        - name: Copy benchmark
+          copy:
+            src: benchmark
+            dest: /home/bankde/
+            owner: bankde
+            group: bankde
+            mode: preserve
+        - name: Copy codepickle
+          copy:
+            src: code_serialization
+            dest: /home/bankde
+            owner: bankde
+            group: bankde
+            mode: preserve
 
         #    - name: Run jupyter
         #      block:
@@ -274,3 +283,18 @@
         - shell: tar xvf /home/bankde/nodejs.tar.xz -C /home/bankde/
         - shell: echo 'export PATH=/opt/node-v16.16.0-linux-x64/bin:$PATH' >> /home/bankde/.bashrc
       when: not nodejs.stat.exists
+
+    - name: Install codepickle
+      become: true
+      become_user: bankde
+      block:
+        - name: tar codepickle
+          community.general.archive:
+            path: /home/bankde/code_serialization/codepickle
+            dest: /home/bankde/code_serialization/codepickle.tar.gz
+            format: gz
+        - name: Pip install codepickle tar
+          pip:
+            executable: /home/bankde/.conda/envs/Volpy/bin/pip
+            name:
+              - file:///home/bankde/code_serialization/codepickle.tar.gz 
