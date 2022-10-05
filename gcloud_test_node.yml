@@ -104,6 +104,7 @@
               - aiohttp
               - python-socketio
               - pyopenssl
+              - pandas
 
     - name: Check opt/bin directory
       stat:
