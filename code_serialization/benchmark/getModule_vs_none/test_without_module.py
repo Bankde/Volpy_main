@@ -16,7 +16,7 @@ class SimpleModuleTest(unittest.TestCase):
         except:
             cls.test_data = {}
         cls.data = {}
-        # codepickle.set_config_get_import(True)
+        codepickle.set_config_get_import(False)
 
     @classmethod
     def tearDownClass(cls):
