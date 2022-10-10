@@ -32,12 +32,15 @@ A = genMat(size)
 B = genMat(size)
 C = np.zeros((size,size))
 `)
+              let data = [];
               for (let i=0; i<100; i++) {
                 let start = new Date().getTime();
                 pyodide.runPython(`ret = matmul(A, B, C)`);
                 let end = new Date().getTime();
                 console.log("Time: " + (end - start));
+                data.push((end-start));
               }
+              document.getElementsByTagName('body')[0].innerHTML = data.toString();
               document.title = "Done";
             };
       main();

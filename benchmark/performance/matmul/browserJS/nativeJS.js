@@ -21,6 +21,7 @@ function genMat(size) {
 
 var size = 125;
 console.log("Testing size: " + size);
+let data = [];
 for (let i=0; i<100; i++) {
 	let A = genMat(size);
 	let B = genMat(size);
@@ -29,5 +30,7 @@ for (let i=0; i<100; i++) {
 	matmul(A, B, C, size);
 	let end = new Date().getTime();
 	console.log("Time: " + (end-start));
+	data.push((end-start));
 }
+document.getElementsByTagName('body')[0].innerHTML = data.toString();
 document.title = "Done";

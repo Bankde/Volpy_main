@@ -42,6 +42,7 @@ async function testWasm() {
   var matmul = instance.instance.exports.matmul;
 
   console.log("Testing size: " + size);
+  let data = [];
   for (let i=0; i<100; i++) {
     let A = genMat(memory.buffer, 0, arrLen);
     let B = genMat(memory.buffer, arrLen*4, arrLen);
@@ -50,7 +51,9 @@ async function testWasm() {
     matmul(A.byteOffset, B.byteOffset, C.byteOffset, size);
     let end = new Date().getTime();
     console.log("Time: " + (end-start));
+    data.push((end-start));
   }
+  document.getElementsByTagName('body')[0].innerHTML = data.toString();
   document.title = "Done";
 }
 
