@@ -2,6 +2,8 @@
 #include <sys/time.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <fstream>
+using namespace std;
 
 void matmul(int* A, int* B, int* C, size_t size) {
     for (int i=0; i<size; i++) {
@@ -35,14 +37,23 @@ int main() {
     int size = (val != NULL) ? strtol(val, NULL, 10) : 125;
     std::cout << "Testing size: " << size << std::endl;
 
-    int* A = genMat(size);
-    int* B = genMat(size);
-    int* C = new int[size*size];
+    ofstream resultFile;
+	resultFile.open("result.txt");
 
-	long start = getMsTime();
-	matmul(A, B, C, size);
-	long end = getMsTime();
+    for (int i=0; i<100; i++) {
 
-	std::cout << "Time: " << (end - start) << std::endl;
+        int* A = genMat(size);
+        int* B = genMat(size);
+        int* C = new int[size*size];
+
+        long start = getMsTime();
+        matmul(A, B, C, size);
+        long end = getMsTime();
+
+        cout << "Time: " << (end - start) << endl;
+        resultFile << (end - start) << endl;
+
+    }
+    resultFile.close();
 	return 0;
 }

@@ -5,18 +5,20 @@ import time
 
 d = DesiredCapabilities.CHROME
 d['goog:loggingPrefs'] = {'browser': 'ALL'}
+d['pageLoadStrategy'] = "none"
 
 chrome_options = Options()
 chrome_options.add_argument('--headless')
 chrome_options.add_argument('--no-sandbox')
 driver = webdriver.Chrome(options=chrome_options, desired_capabilities=d)
+driver.set_script_timeout(10000000);
 driver.get("file:///home/bankde/benchmark/performance/gigaflop/pyodide/pyodide.html")
 
-while True:
-    if driver.title == "Done": break
-    time.sleep(5)
-
-for entry in driver.get_log('browser'):
-    print(entry)
+with open("result.txt", "w") as f:
+    while driver.title != "Done":
+        for entry in driver.get_log('browser'):
+            print(entry)
+            f.write(entry + "\n")
+        time.sleep(3)
 
 driver.close()

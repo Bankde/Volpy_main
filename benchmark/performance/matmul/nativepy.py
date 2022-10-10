@@ -31,13 +31,16 @@ def test():
 
 test()
 print("Testing size: %d" % size)
-A = genMat(size)
-B = genMat(size)
-C = np.zeros((size,size))
-start = timer()
-matmul(A, B, C)
-end = timer()
-t = (end - start)*1000
-print("Time: %.1f" % t)
+with open("result.txt", "w") as f:
+    for i in range(100):
+        A = genMat(size)
+        B = genMat(size)
+        C = np.zeros((size,size))
+        start = timer()
+        matmul(A, B, C)
+        end = timer()
+        t = (end - start)*1000
+        print("Time: %.3f" % t)
+        f.write("%.3f\n" % t)
 
 

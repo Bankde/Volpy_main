@@ -8,8 +8,12 @@ function giga_flop() {
 	return x;
 }
 
-let start = new Date().getTime();
-let ret = giga_flop();
-let end = new Date().getTime();
-console.log("Ans: " + ret);
-console.log("Time: " + (end-start));
+for (let i=0; i<100; i++) {
+	let start = new Date().getTime();
+	let ret = giga_flop();
+	let end = new Date().getTime();
+	// console.log("Ans: " + ret);
+	console.log("Time: " + (end-start));
+}
+
+document.title = "Done";

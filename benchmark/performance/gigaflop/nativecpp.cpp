@@ -1,5 +1,7 @@
 #include <iostream>
 #include <sys/time.h>
+#include <fstream>
+using namespace std;
 
 double giga_flop() {
 	double x = 3.14159;
@@ -18,10 +20,16 @@ long getMsTime() {
 }
 
 int main() {
-	long start = getMsTime();
-	double ret = giga_flop();
-	long end = getMsTime();
-	std::cout << "Ans: " << ret << std::endl;
-	std::cout << "Time: " << (end - start) << std::endl;
+	ofstream resultFile;
+	resultFile.open("result.txt");
+	for (int i=0; i<100; i++) {
+		long start = getMsTime();
+		double ret = giga_flop();
+		long end = getMsTime();
+		// cout << "Ans: " << ret << std::endl;
+		cout << "Time: " << (end - start) << endl;
+		resultFile << (end - start) << endl;
+	}
+	resultFile.close();
 	return 0;
 }

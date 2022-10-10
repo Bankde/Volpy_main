@@ -17,11 +17,13 @@ def giga_flop():
     x *= 0.5398394834
   return x
 `)
-              let start = new Date().getTime();
-              pyodide.runPython(`ret = giga_flop()`);
-              let end = new Date().getTime();
-              console.log("Ans: " + pyodide.globals.get("ret"));
-              console.log("Time: " + (end - start));
+              for (let i=0; i<100; i++) {
+                let start = new Date().getTime();
+                pyodide.runPython(`ret = giga_flop()`);
+                let end = new Date().getTime();
+                // console.log("Ans: " + pyodide.globals.get("ret"));
+                console.log("Time: " + (end - start));
+              }
               document.title = "Done";
             };
       main();

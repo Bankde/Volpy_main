@@ -8,9 +8,12 @@ def giga_flop():
         x *= 0.5398394834
     return x
 
-start = timer()
-ret = giga_flop()
-end = timer()
-t = (end - start)*1000
-print("Ans: %f" % ret)
-print("Time: %.1f" % t)
+with open("result.txt", "w") as f:
+    for i in range(100):
+        start = timer()
+        ret = giga_flop()
+        end = timer()
+        t = (end - start)*1000
+        # print("Ans: %.3f" % ret)
+        print("Time: %.3f" % t)
+        f.write("%.3f\n" % t)

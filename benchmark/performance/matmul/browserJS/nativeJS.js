@@ -21,10 +21,13 @@ function genMat(size) {
 
 var size = 125;
 console.log("Testing size: " + size);
-let A = genMat(size);
-let B = genMat(size);
-let C = new Int32Array(size*size);
-let start = new Date().getTime();
-matmul(A, B, C, size);
-let end = new Date().getTime();
-console.log("Time: " + (end-start));
+for (let i=0; i<100; i++) {
+	let A = genMat(size);
+	let B = genMat(size);
+	let C = new Int32Array(size*size);
+	let start = new Date().getTime();
+	matmul(A, B, C, size);
+	let end = new Date().getTime();
+	console.log("Time: " + (end-start));
+}
+document.title = "Done";
