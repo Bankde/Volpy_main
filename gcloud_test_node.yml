@@ -242,7 +242,7 @@
       shell: "{{ item }}"
       with_items:
         - "g++ /home/bankde/benchmark/performance/gigaflop/nativecpp.cpp -o /home/bankde/benchmark/performance/gigaflop/nativecpp.out -O2"
-        - "g++ /home/bankde/benchmark/performance/matmul/nativecpp.cpp -o /home/bankde/benchmark/performance/matmul/nativecpp.out -O2"
+        - "g++ /home/bankde/benchmark/performance/matmul/nativecpp/nativecpp.cpp -o /home/bankde/benchmark/performance/matmul/nativecpp/nativecpp.out -O2"
 
     - name: Prepare wasm test
       become: true
