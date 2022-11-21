@@ -65,7 +65,7 @@ class PickleTest(unittest.TestCase):
                 # avg_stat = sum(time_stat[1:-1])/(len(time_stat)-2) # Remove lowest and highest before avg'ing
                 # Unlike original one, we force "one pickle dumps per test" so no double list here.
                 self.result[self._testMethodName]["time"] = time_stat
-                self.result[self._testMethodName]["size"] = -1
+                self.result[self._testMethodName]["size"] = len(string)
             except:
                 self.result[self._testMethodName]["time"] = []
                 self.result[self._testMethodName]["size"] = -1
