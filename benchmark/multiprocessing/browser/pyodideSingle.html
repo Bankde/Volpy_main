@@ -1,0 +1,44 @@
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.20.0/full/pyodide.js"></script>
+  </head>
+  <body>
+    <script>
+      async function main() {
+              let pyodide = await loadPyodide();
+              console.log("Done initialize pyodide");
+              await pyodide.loadPackage('numpy')
+              pyodide.runPython(`
+import numpy as np
+STEP = 1000 ** 2
+def pi_monte_carlo(CORE):
+    circle_points = 0
+    square_points = 0
+    for i in range(STEP // CORE):
+        rand_x = np.random.uniform(-1, 1)
+        rand_y = np.random.uniform(-1, 1)
+        origin_dist = rand_x**2 + rand_y**2
+        if origin_dist <= 1:
+            circle_points += 1
+        square_points += 1
+    return (circle_points, square_points)
+`)
+              let data = [];
+              for (let i=0; i<100; i++) {
+                let start = new Date().getTime();
+                pyodide.runPython(`ret = pi_monte_carlo(1)`);
+                let end = new Date().getTime();
+                console.log("Time: " + (end - start));
+                // let ret = pyodide.globals.get('ret').toJs();
+                // let pi = 4 * ret[0] / ret[1];
+                // console.log("PI: " + pi);
+                data.push((end-start));
+              }
+              document.getElementsByTagName('body')[0].innerHTML = data.toString();
+              document.title = "Done";
+            };
+      main();
+    </script>
+    Hello World
+    </body>
+</html>

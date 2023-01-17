@@ -1,0 +1,12 @@
+syntax = "proto3";
+import "google/protobuf/empty.proto";
+package test;
+
+service Task {
+  rpc RunPI(google.protobuf.Empty) returns (Result) {}
+}
+
+message Result {
+  int32 circles = 1;
+  int32 squares = 2;
+}

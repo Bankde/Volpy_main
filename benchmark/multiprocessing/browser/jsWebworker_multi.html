@@ -1,0 +1,72 @@
+<html>
+  <head> </head>
+  <body>
+    <script type="module">
+const pyodideWorkers = [];
+const CORE = 4;
+for (let i=0; i<CORE; i++) {
+  pyodideWorkers.push(new Worker("./webworker.js"));
+}
+
+const callbacks = {};
+
+function workerOnMessageCallback(event) {
+  const { id, timeTaken, circles, squares } = event.data;
+  const onSuccess = callbacks[id];
+  delete callbacks[id];
+  onSuccess({timeTaken, circles, squares});
+};
+
+for (let i=0; i<CORE; i++) {
+  pyodideWorkers[i].onmessage = workerOnMessageCallback;
+}
+
+const asyncRun = (() => {
+  let id = 0; // identify a Promise
+  return (i, script) => {
+    // the id could be generated more carefully
+    id = (id + 1) % Number.MAX_SAFE_INTEGER;
+    return new Promise((onSuccess) => {
+      callbacks[id] = onSuccess;
+      pyodideWorkers[i].postMessage({id, script});
+    });
+  };
+})();
+
+const script = `ret = pi_monte_carlo(4)`;
+
+async function main() {
+  let data = [];
+  for (let t=0; t<100; t++) {
+    try {
+      let tasks = []
+      for (let i=0; i<CORE; i++) {
+        tasks.push(asyncRun(i, script));
+      }
+      let results = await Promise.all(tasks);
+      let timeTakens = [];
+      let all_circles = 0;
+      let all_squares = 0;
+      for (let i=0; i<results.length; i++) {
+        let {timeTaken, circles, squares} = results[i];
+        timeTakens.push(timeTaken);
+        all_circles += circles;
+        all_squares += squares;
+      }
+      data.push(timeTakens);
+      console.log(timeTakens);
+      let pi = 4 * all_circles / all_squares;
+      console.log(pi, all_circles, all_squares);
+    } catch (e) {
+      console.log(e);
+    }
+  }
+  console.log(data);
+  document.getElementsByTagName("body")[0].innerHTML = JSON.stringify(data);
+  document.title = "Done";
+}
+
+main();
+    </script>
+  </body>
+</html>
