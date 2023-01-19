@@ -1,0 +1,64 @@
+<html>
+  <head> </head>
+  <body>
+    <script type="module">
+const pyodideWorker = new Worker("./webworker_msgCopy.js");
+const callbacks = {};
+
+pyodideWorker.onmessage = (event) => {
+  const { id, result } = event.data;
+  const onSuccess = callbacks[id];
+  delete callbacks[id];
+  onSuccess({result});
+};
+
+const asyncRun = (() => {
+  let id = 0; // identify a Promise
+  return (data, ind) => {
+    // the id could be generated more carefully
+    id = (id + 1) % Number.MAX_SAFE_INTEGER;
+    return new Promise((onSuccess) => {
+      callbacks[id] = onSuccess;
+      pyodideWorker.postMessage({id, data, ind});
+    });
+  };
+})();
+
+const buffer = new ArrayBuffer(4*10000000); // 10m * int because 1m is not enough
+let int32View = new Int32Array(buffer);
+for (let i=0; i<int32View.length; i++) {
+  int32View[i] = Math.floor(Math.random() * 1000);
+}
+
+const random_index = 456721;
+const intAtN = int32View[random_index];
+
+async function main() {
+  let tdata = [];
+  try {
+    await asyncRun(int32View, random_index); // cold boot, to init pyodide
+  } catch (e) {
+    console.log(e)
+  }
+  for (let t=0; t<100; t++) {
+    try {
+      let start = new Date().getTime();
+      const {result} = await asyncRun(int32View, random_index); // random index
+      let end = new Date().getTime();
+      let timeTaken = (end - start);
+      tdata.push(timeTaken);
+      console.log(timeTaken);
+      console.assert(result == intAtN, 'INCORRECT RESULT', intAtN, result);
+    } catch (e) {
+      console.log(e);
+    }
+  }
+  console.log(tdata);
+  document.getElementsByTagName("body")[0].innerHTML = JSON.stringify(tdata);
+  document.title = "Done";
+}
+
+main();
+    </script>
+  </body>
+</html>

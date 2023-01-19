@@ -18,8 +18,8 @@ def test():
     # Connect the processes in the pool.
     pool = Pool(initializer=init, initargs=(), processes=1)
 
-    # We use int64 here so it's fair comparison with javascript BigInt
-    arr = np.random.randint(1000000, size=array_size, dtype=np.int64)
+    # We use int32 here so it's similar to the JS arraybuffer with Int32Array
+    arr = np.random.randint(1000000, size=array_size, dtype=np.int32)
 
     # Time to store object / load
     t1 = timer()
