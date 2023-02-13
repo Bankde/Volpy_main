@@ -1,0 +1,22 @@
+syntax = "proto3";
+package raylet;
+
+import public "volpy.proto";
+
+message WorkerData {
+  string port = 1; // It's easier to deal with str when we don't need input validation here
+}
+
+service Volpy {
+  // Worker
+  rpc InitWorker(WorkerData) returns (Status) {}
+
+  // Task
+  rpc CreateTask(TaskNameAndCode) returns (Status) {}
+  rpc SubmitTask(IdTaskArgs) returns (DataRef) {}
+
+  // DataStore
+  rpc Get(DataRef) returns (StatusWithData) {}
+  rpc Put(Data) returns (DataRef) {}
+}
+

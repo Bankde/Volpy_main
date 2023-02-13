@@ -17,7 +17,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+# lib/ //ignore this one because we are writing the lib
 lib64/
 parts/
 sdist/

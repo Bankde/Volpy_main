@@ -1,0 +1,10 @@
+syntax = "proto3";
+package node;
+
+import public "volpy.proto";
+
+service Volpy {
+  // Task
+  rpc InitTask(TaskNameAndCode) returns (Status) {}
+  rpc RunTask(IdTaskArgs) returns (StatusWithData) {}
+}

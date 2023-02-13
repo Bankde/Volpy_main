@@ -1,0 +1,68 @@
+import codepickle
+import cloudpickle
+from .singleton import Singleton
+import asyncio
+from .util import counter as counter
+
+# We don't use import singleton ipc_caller here because 
+# this module could be in either REPL or workers.
+
+class VolpyDataRef(object):
+    def __init__(self, ref:str, ipc_caller):
+        self.ref = ref
+        self.ipc_caller = ipc_caller
+
+    def get(self):
+        '''
+        Get the result from the task.
+        This method is synchronous and will block until the execution is finished.
+        '''
+        task = self.ipc_caller.Get(self.ref)
+        loop = asyncio.get_running_loop()
+        response = loop.run_until_complete(task)
+        if response.status == 0:
+            return task_manager.deserializeData(response.serialized_data)
+        else:
+            raise RuntimeError(response.status)
+
+class TaskManager(object, metaclass=Singleton):
+    def setup(self, ipc_caller):
+        self.ipc_caller = ipc_caller
+
+    def _generateRemoteFunc(self, func):
+        def remote(*kwargs) -> VolpyDataRef:
+            serialized_data = self.serializeData(kwargs)
+            cid = counter.getCount()
+            loop = asyncio.get_running_loop()
+            # Blocking won't take long because raylet will generate and send ref back to us
+            response = loop.run_until_complete(self.ipc_caller.SubmitTask(cid, func.__name__, serialized_data))
+            ref = response.dataref
+            dataRef = VolpyDataRef(ref, self.ipc_caller)
+            return dataRef
+        return remote
+
+    def registerRemote(self, func):
+        serializedTask = self.serializeUploadTask(func)
+        taskname = func.__name__
+        loop = asyncio.get_running_loop()
+        loop.run_until_complete(self.ipc_caller.CreateTask(taskname, serializedTask))
+        func.remote = self._generateRemoteFunc(func)
+
+    def serializeData(self, args):
+        return cloudpickle.dumps(args)
+
+    def deserializeData(self ,args):
+        return cloudpickle.loads(args)
+
+    def serializeUploadTask(self, task):
+        return codepickle.dumps(task)
+
+    def deserializeUploadTask(self, serializedTask):
+        task = codepickle.loads(serializedTask)
+        task.remote = self._generateRemoteFunc(task)
+        return task
+
+task_manager = TaskManager()
+registerRemote = task_manager.registerRemote
+serializeUploadTask = task_manager.serializeUploadTask
+deserializeUploadTask = task_manager.deserializeUploadTask
