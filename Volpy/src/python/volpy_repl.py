@@ -22,7 +22,8 @@ if __name__ == '__main__':
     loop.run_until_complete(ipc_caller.waitReady())
     volpy_task_manager.TaskManager().setup(ipc_caller)
     globals = {
-        'registerRemote': volpy_task_manager.registerRemote
+        'registerRemote': volpy_task_manager.registerRemote,
+        'put': volpy_task_manager.put
     }
     loop.run_until_complete(driver_repl.start_repl(loop, globals))
     loop.stop()

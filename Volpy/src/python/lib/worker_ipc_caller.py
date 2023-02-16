@@ -33,4 +33,10 @@ class Worker_IPCCaller(object, metaclass=Singleton):
     async def InitWorker(self, port):
         return await self.stub.InitWorker(raylet_pb2.WorkerData(port=port))
 
+    async def Get(self, ref):
+        return await self.stub.Get(raylet_pb2.DataRef(dataref=ref))
+
+    async def Put(self, data):
+        return await self.stub.Put(raylet_pb2.Data(serialized_data=data))
+
 ipc_caller = Worker_IPCCaller()

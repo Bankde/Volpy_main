@@ -8,9 +8,14 @@ from .util import counter as counter
 # this module could be in either REPL or workers.
 
 class VolpyDataRef(object):
-    def __init__(self, ref:str, ipc_caller):
+    ipc_caller = None
+
+    def __init__(self, ref:str):
         self.ref = ref
-        self.ipc_caller = ipc_caller
+
+    @classmethod
+    def setup(cls, ipc_caller):
+        cls.ipc_caller = ipc_caller
 
     def get(self):
         '''
@@ -28,6 +33,7 @@ class VolpyDataRef(object):
 class TaskManager(object, metaclass=Singleton):
     def setup(self, ipc_caller):
         self.ipc_caller = ipc_caller
+        VolpyDataRef.setup(self.ipc_caller)
 
     def _generateRemoteFunc(self, func):
         def remote(*kwargs) -> VolpyDataRef:
@@ -37,7 +43,7 @@ class TaskManager(object, metaclass=Singleton):
             # Blocking won't take long because raylet will generate and send ref back to us
             response = loop.run_until_complete(self.ipc_caller.SubmitTask(cid, func.__name__, serialized_data))
             ref = response.dataref
-            dataRef = VolpyDataRef(ref, self.ipc_caller)
+            dataRef = VolpyDataRef(ref)
             return dataRef
         return remote
 
@@ -62,7 +68,16 @@ class TaskManager(object, metaclass=Singleton):
         task.remote = self._generateRemoteFunc(task)
         return task
 
+    def put(self, data):
+        serialized_data = self.serializeData(data)
+        loop = asyncio.get_running_loop()
+        response = loop.run_until_complete(self.ipc_caller.Put(serialized_data))
+        ref = response.dataref
+        dataRef = VolpyDataRef(ref)
+        return dataRef
+
 task_manager = TaskManager()
 registerRemote = task_manager.registerRemote
 serializeUploadTask = task_manager.serializeUploadTask
 deserializeUploadTask = task_manager.deserializeUploadTask
+put = task_manager.put
