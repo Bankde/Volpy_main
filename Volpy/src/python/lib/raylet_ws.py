@@ -73,9 +73,9 @@ class VolpyWS(SimpleWS):
         msg_obj = {"status": 0}
         return json.dumps(msg_obj)
 
-def volpy_ws_create_session_runner(uuid, router, realm=None, is_main=False):
+def volpy_ws_create_session_runner(uuid, router, realm=None, is_main=False, logger=logging):
     realm = realm if realm else config.realm
     session = VolpyWS(ComponentConfig(realm, {}))
-    session.init(uuid, is_main)
+    session.init(uuid, is_main, logger=logging)
     runner = ApplicationRunner(router, realm)
     return session, runner

@@ -33,8 +33,8 @@ if __name__ == '__main__':
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     # Run websocket and GRPC
-    session, runner = VolpyWS.volpy_ws_create_session_runner(config.uuid, router=config.router, is_main=config.main)
-    asyncio.ensure_future(runner.run(session, start_loop=False, log_level='info'), loop=loop)
+    session, runner = VolpyWS.volpy_ws_create_session_runner(config.uuid, router=config.router, is_main=config.main, logger=logging)
+    asyncio.ensure_future(runner.run(session, start_loop=False), loop=loop)
     ipc_server = raylet_ipc.RayletIPCServer(config.rayletipc_addr)
     config.rayletipc = ipc_server.getRunningPort() # In case port=0
     logging.info(f"Running IPC port: {config.rayletipc}")
