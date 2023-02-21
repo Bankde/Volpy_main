@@ -1,4 +1,5 @@
 from .volpy_task_manager import task_manager
+import inspect
 
 tasklist = {}
 
@@ -11,10 +12,14 @@ class SerializationError(Exception):
 def initTask(task_name, serialized_task):
     tasklist[task_name] = task_manager.deserializeUploadTask(serialized_task)
 
-def executeTask(task_name, serialized_data):
+async def executeTask(task_name, serialized_data):
     try:
         kwargs = task_manager.deserializeData(serialized_data)
-        ret = tasklist[task_name](*kwargs)
+        task = tasklist[task_name]
+        if inspect.iscoroutinefunction(task):
+            ret = await task(*kwargs)
+        else:
+            ret = task(*kwargs)
     except:
         raise ExecutionError
     try:

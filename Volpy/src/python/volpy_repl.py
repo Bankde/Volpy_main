@@ -11,6 +11,10 @@ import logging, sys
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 if __name__ == '__main__':
+    '''
+    Example:
+    python volpy_repl.py --rayletipc_addr localhost:50100
+    '''
     parser = argparse.ArgumentParser()
     parser.add_argument("--rayletipc_addr", type=str, required=True, help="Specify raylet IPC address")
     args = parser.parse_args()

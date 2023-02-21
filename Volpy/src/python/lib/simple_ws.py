@@ -4,6 +4,10 @@ from autobahn.asyncio.wamp import ApplicationSession
 from bidict import bidict
 import typing
 
+'''
+crossbar start
+'''
+
 class SimpleWS(ApplicationSession):
     def __init__(self, config):
         ApplicationSession.__init__(self, config)

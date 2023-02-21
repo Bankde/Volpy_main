@@ -14,6 +14,10 @@ import logging, sys
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 if __name__ == '__main__':
+    '''
+    Example:
+    python volpy_raylet.py --main --router ws://127.0.0.1:8080/ws --rayletipc 50100 -w 0
+    '''
     parser = argparse.ArgumentParser()
     parser.add_argument("--main", action="store_true", default=False, help="Set main raylet")
     parser.add_argument("--router", type=str, default="ws://127.0.0.1:8080/ws", help="Specify main raylet router address")

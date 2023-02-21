@@ -24,7 +24,7 @@ class TaskRunner(worker_pb2_grpc.VolpyServicer):
         logging.info(f'Recv RunTask: {cid} {task_name}')
         args = request.args
         try:
-            data = worker_executor.executeTask(task_name, args)
+            data = await worker_executor.executeTask(task_name, args)
             return worker_pb2.StatusWithData(status=0, serialized_data=data)
         except worker_executor.ExecutionError:
             return worker_pb2.StatusWithData(status=1, serialized_data=b"")

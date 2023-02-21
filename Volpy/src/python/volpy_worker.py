@@ -19,6 +19,10 @@ async def reaperPoll(pid):
             os._exit(os.EX_OK)
 
 if __name__ == '__main__':
+    '''
+    Example:
+    python volpy_worker.py --rayletipc 50100 --workeripc 50201
+    '''
     parser = argparse.ArgumentParser()
     parser.add_argument("--rayletipc", type=str, required=True, help="Specify raylet IPC port")
     # default PID 0 will not kill the worker.

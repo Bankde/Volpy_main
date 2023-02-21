@@ -26,7 +26,7 @@ class Raylet_IPCCaller(object):
         self.channel.add_callback(func)
 
     async def waitReady(self, idx):
-        await self.channel.channel_ready()    
+        await self.channel.channel_ready()
 
     async def InitTask(self, name, serialized_task):
         await self.channel.channel_ready()
