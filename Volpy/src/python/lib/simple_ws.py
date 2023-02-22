@@ -36,7 +36,7 @@ class SimpleWS(ApplicationSession):
             await self.register(self._node_register_d, 'com.node.register')
             await self.subscribe(self._node_unregister_d, 'wamp.session.on_leave')
             await self.register(self._node_heartbeat_d, 'com.node.update_heartbeat')
-            self.logging.info("Setup Main finish")
+            self.logging.info("Setup WS Main Raylet finish")
         else:
             '''
             Subscribe for heartbeat first so when we register the node, 
