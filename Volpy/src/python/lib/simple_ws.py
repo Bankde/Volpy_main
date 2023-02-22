@@ -18,7 +18,7 @@ class SimpleWS(ApplicationSession):
     def init(self, uuid, is_main=False, logger=logging):
         self.is_main = is_main
         self.id2uuid = bidict()
-        self.id2sid = bidict()
+        self.id2sid = bidict() # sid is session_id (assigned by crossbario)
         self.heartbeatlist = {}
         self.uuid = uuid
         self.id = None

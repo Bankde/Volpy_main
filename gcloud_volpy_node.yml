@@ -257,3 +257,8 @@
             executable: /home/bankde/.conda/envs/Volpy/bin/pip
             name:
               - file:///home/bankde/code_serialization/codepickle.tar.gz 
+
+    - name: Create crossbar router docker image
+      shell:
+        cmd: docker build -t router -f Dockerfile .
+        chddir: /home/bankde/Volpy/src/router/
