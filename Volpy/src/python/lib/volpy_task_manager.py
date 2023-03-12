@@ -72,7 +72,7 @@ class TaskManager(object, metaclass=Singleton):
         serialized_data = self.serializeData(data)
         loop = asyncio.get_running_loop()
         response = loop.run_until_complete(self.ipc_caller.Put(serialized_data))
-        ref = response.dataref
+        status, ref = response.status, response.dataref
         dataRef = VolpyDataRef(ref)
         return dataRef
 

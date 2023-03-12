@@ -1,10 +1,12 @@
 from .singleton import Singleton
 from enum import Enum
-from typing import List
+from typing import List, Dict, Any
+import types
 from .raylet_ipc_caller import Raylet_IPCCaller as IPCCaller
+from .raylet_ws import session as raylet_ws
 import asyncio
 
-import typing
+from .util import Status
 
 class Connection(Enum):
     NONE = 0
@@ -12,27 +14,38 @@ class Connection(Enum):
     WS = 2
 
 class Worker(object):
-    def __init__(self, worker_name, idx : int, workeripc: int = None, rayletws: str = None):
-        assert(not (workeripc and rayletws))
-        self.worker_name = worker_name
+    def __init__(self, idx : str, workeripc: int = None, rayletid: str = None):
+        assert(not (workeripc and rayletid))
         self.idx = idx
+        self.locked = False
         if workeripc:
             self.connection = Connection.IPC
             self.workeripc = workeripc
             self.ipccaller = IPCCaller()
             self.ipccaller.connect(f'localhost:{workeripc}')
-        elif rayletws:
+        elif rayletid:
             self.connection = Connection.WS
-            self.rayletws = rayletws
-            # TODO: redirect to rayletws
+            self.rayletid = rayletid
         else:
             raise
+
+    def lock(self):
+        self.locked = True
+
+    def unlock(self):
+        self.locked = False
+
+    def isLocked(self) -> bool:
+        return self.locked
+
+    def getId(self) -> str:
+        return self.idx
 
     def getConnectionType(self) -> Connection:
         return self.connection
 
-    def getWSAddr(self) -> str:
-        return self.rayletws
+    def getRayletId(self) -> str:
+        return self.rayletid
     
     def getIPCPort(self) -> int:
         return self.workeripc
@@ -44,42 +57,71 @@ class Worker(object):
         if self.connection == Connection.IPC:
             return await self.ipccaller.InitTask(name, serialized_task)
         else:
-            pass # TODO: redirect to rayletws
+            # There shouldn't be any initTask send to worker via this method
+            # initTask should be broadcasted through rayletws instead of iterating each worker.
+            raise
 
-    async def runTask(self, cid, name, args):
+    async def runTaskLocal(self, cid: str, ref: str, name: str, args: bytes):
         '''
-        Not blocking, instead return coroutine
+        Run the task and do all routines when the task is finished.
+        1. Save value into datastore
+        2. Call FreeWorker to main raylet
         '''
-        if self.connection == Connection.IPC:
-            return await self.ipccaller.RunTask(cid, name, args)
-        else:
-            pass # TODO: redirect to rayletws
+        assert(self.connection == Connection.IPC)
+        response = await self.ipccaller.RunTask(cid, name, args)
+        msg = {"cid": cid, "worker_id": self.idx}
+        datastore.saveVal(ref, val=response.serialized_data, status=response.status)
+        await raylet_ws.send(raylet_ws.getMainId, raylet_ws.API.FreeWorker, msg)
+        return response
+    
+    async def runTaskRemote(self, cid: str, name: str, args: bytes):
+        '''
+        UNLIKE runTaskLocal, we call the remote then we wait for the response status
+        to ensure that the task is started, dataref is saved and broadcasted.
+        '''
+        assert(self.connection == Connection.WS)
+        msg = {"cid": cid, "worker_id": self.idx, "task_name": name, "args": args}
+        response = await raylet_ws.send(self.rayletid, raylet_ws.API.WorkerRun, msg)
+        return response
 
 class Scheduler(object, metaclass=Singleton):
 
     def __init__(self):
-        self._workerList = []
-        self._name2worker = {}
+        self._workerList: List[Worker] = []
+        self._id2worker: Dict[int, Worker] = {}
         self.workerNum = 0
         self.rr = 0
-        self.tasks = {}
+        self.tasks: Dict[str, bytes] = {}
 
-    def saveTask(self, taskname, serialized_task):
+    def saveTask(self, taskname: str, serialized_task: bytes):
         self.tasks[taskname] = serialized_task
 
-    def getAllTasks(self):
+    def getAllTasks(self) -> Dict[str, bytes]:
         return self.tasks
 
     def addWorker(self, workeripc=None, rayletws=None) -> Worker:
         '''
         Add and connect worker
-        Either IPC (grpc) or Websocket (in case of different node)
+        Either IPC (grpc) or WebsocketId (in case of different node)
         '''
-        worker_name = f'worker-{self.workerNum+1}'
-        worker = Worker(worker_name, self.workerNum, workeripc, rayletws)
+        worker_id = str(self.workerNum)
+        worker = Worker(worker_id, workeripc, rayletws)
         self._workerList.append(worker)
         self.workerNum += 1
-        self._name2worker[worker_name] = worker
+        self._id2worker[worker_id] = worker
+        return worker
+
+    def addWorkerWithId(self, worker_id: str, workeripc=None, rayletws=None) -> Worker:
+        '''
+        Add and connect worker with Id
+        Use this API when Id is assigned from the main raylet.
+        Either IPC (grpc) or WebsocketId (in case of different node)
+        '''
+        worker_id = str(worker_id)
+        worker = Worker(worker_id, workeripc, rayletws)
+        self.workerNum += 1
+        self._workerList.append(worker)
+        self._id2worker[worker_id] = worker
         return worker
 
     def getAllWorkers(self) -> List[Worker]:
@@ -89,39 +131,60 @@ class Scheduler(object, metaclass=Singleton):
         return [worker for worker in self._workerList if worker.getConnectionType() == Connection.IPC ]
 
     def acquireWorker(self) -> Worker:
+        '''
+        Acquire the free worker to perform task.
+        The worker will be locked.
+        '''
         # Round-robin
-        cur_worker = self._workerList[self.rr % self.workerNum]
-        self.rr += 1
-        return cur_worker
+        for i in range(self.workerNum):
+            acq_id = self.rr % self.workerNum
+            cur_worker = self._workerList[acq_id]
+            self.rr += 1
+            if cur_worker.isLocked == False:
+                cur_worker.lock()
+                return cur_worker
+        return None
+    
+    def freeWorker(self, worker_id:str):
+        worker = self.getWorkerById(worker_id)
+        worker.unlock()
 
-    def getWorkerByName(self, worker_name) -> Worker:
-        return self._name2worker[worker_name]
+    def getWorkerById(self, worker_id: str) -> Worker:
+        return self._id2worker[worker_id]
 
 class Datastore(object, metaclass=Singleton):
     class VolpyData(object):
         def __init__(self, ref:str, loc:str = None, val=None, fut:asyncio.Future = None):
             self.ref = ref
-            self.loc = loc # Currently not used unless we want to upgrade
+            self.loc = loc
             self.val = val
             self.fut = fut
             self.status = 0 if val else -1
-            self.done = (fut is None)
+            self.done = (fut is None and loc is None)
 
     def __init__(self):
         self.dict = {}
 
-    def get(self, ref:str) -> tuple[int, typing.Any]:
+    def get(self, ref:str) -> tuple[int, Any]:
         '''
         Return the tuple of (status, val)
         '''
-        try:
-            obj = self.dict[ref]
+        if not ref in self.dict:
+            return (Status.DATA_NOT_FOUND, None)
+        
+        obj = self.dict[ref]
+        if self.val != None:
             return (obj.status, obj.val)
-        except Exception as e:
-            return (3, None)
+        
+        assert(self.loc != None)
+        return (Status.DATA_ON_OTHER, self.loc)
 
     def put(self, ref:str, val):
         obj = self.VolpyData(ref, val=val)
+        self.dict[ref] = obj
+
+    def putLoc(self, ref:str, loc):
+        obj = self.VolpyData(ref, loc=loc)
         self.dict[ref] = obj
 
     def putFuture(self, ref:str, fut:asyncio.Future):
@@ -144,8 +207,12 @@ class Datastore(object, metaclass=Singleton):
         obj.status = status
         obj.done = True
 
-
 scheduler = Scheduler()
 datastore = Datastore()
 
+forget_background_tasks = set()
+def fire_and_forget_task(coro):
+    task = asyncio.create_task(coro)
+    forget_background_tasks.add(task)
+    task.add_done_callback(forget_background_tasks.discard)
     

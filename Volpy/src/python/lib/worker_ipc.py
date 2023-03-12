@@ -7,6 +7,8 @@ import cloudpickle
 from . import worker_executor
 import logging
 
+from .util import Status
+
 class TaskRunner(worker_pb2_grpc.VolpyServicer):
     async def InitTask(self, request, context):
         task_name = request.name
@@ -15,8 +17,8 @@ class TaskRunner(worker_pb2_grpc.VolpyServicer):
         try:
             worker_executor.initTask(task_name, serialized_task)
         except:
-            return worker_pb2.Status(status=2)
-        return worker_pb2.Status(status=0)
+            return worker_pb2.Status(status=Status.SERIALIZATION_ERROR)
+        return worker_pb2.Status(status=Status.SUCCESS)
 
     async def RunTask(self, request, context):
         cid = request.id
@@ -25,11 +27,11 @@ class TaskRunner(worker_pb2_grpc.VolpyServicer):
         args = request.args
         try:
             data = await worker_executor.executeTask(task_name, args)
-            return worker_pb2.StatusWithData(status=0, serialized_data=data)
+            return worker_pb2.StatusWithData(status=Status.SUCCESS, serialized_data=data)
         except worker_executor.ExecutionError:
-            return worker_pb2.StatusWithData(status=1, serialized_data=b"")
+            return worker_pb2.StatusWithData(status=Status.EXECUTION_ERROR, serialized_data=b"")
         except worker_executor.SerializationError:
-            return worker_pb2.StatusWithData(status=2, serialized_data=b"")
+            return worker_pb2.StatusWithData(status=Status.SERIALIZATION_ERROR, serialized_data=b"")
 
 class WorkerIPCServer(object):
     def __init__(self, port):

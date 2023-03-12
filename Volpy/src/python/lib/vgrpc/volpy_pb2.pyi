@@ -40,6 +40,14 @@ class StatusWithData(_message.Message):
     status: int
     def __init__(self, status: _Optional[int] = ..., serialized_data: _Optional[bytes] = ...) -> None: ...
 
+class StatusWithDataRef(_message.Message):
+    __slots__ = ["dataref", "status"]
+    DATAREF_FIELD_NUMBER: _ClassVar[int]
+    STATUS_FIELD_NUMBER: _ClassVar[int]
+    dataref: str
+    status: int
+    def __init__(self, status: _Optional[int] = ..., dataref: _Optional[str] = ...) -> None: ...
+
 class TaskNameAndCode(_message.Message):
     __slots__ = ["name", "serialized_task"]
     NAME_FIELD_NUMBER: _ClassVar[int]

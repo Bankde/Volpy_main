@@ -2,8 +2,10 @@ import asyncio
 from autobahn.asyncio.wamp import ApplicationSession
 
 from bidict import bidict
+import addict as MsgObj
 import typing
 import logging
+import json
 
 '''
 crossbar start
@@ -36,6 +38,10 @@ class SimpleWS(ApplicationSession):
             await self.register(self._node_register_d, 'com.node.register')
             await self.subscribe(self._node_unregister_d, 'wamp.session.on_leave')
             await self.register(self._node_heartbeat_d, 'com.node.update_heartbeat')
+            # Main raylet id should be 0
+            self.id = await self._node_register_d(self._session_id, self.uuid)
+            await self.register(self.recv, f'com.node{self.id}.call')
+            assert(self.id == 0)
             self.logging.info("Setup WS Main Raylet finish")
         else:
             '''
@@ -47,7 +53,10 @@ class SimpleWS(ApplicationSession):
             await self.register(self.recv, f'com.node{self.id}.call')
             self.logging.info(f'Setup Node finish: sid_{self._session_id} id_{self.id}')
 
-    async def _node_register_d(self, sid, uuid):
+    async def _node_register_d(self, sid, uuid) --> str:
+        '''
+        Return new node id (str)
+        '''
         if uuid in self.id2uuid.inverse:
             id = self.id2uuid.inverse[uuid]
             return id
@@ -82,6 +91,9 @@ class SimpleWS(ApplicationSession):
         self.id2uuid = bidict(set_id2uuid)
 
     async def _send_heartbeat(self):
+        '''
+        Call from node to main raylet, receive nodelist (id2uuid) back and update it.
+        '''
         self.id2uuid = await self.call('com.node.update_heartbeat')
         return self.id2uuid
 
@@ -99,14 +111,16 @@ class SimpleWS(ApplicationSession):
         if msgType not in self.callback:
             raise RuntimeError("MsgType not implemented")
         f = self.callback[msgType]
-        return await f(data)
+        ret_obj = await f(MsgObj(data))
+        return json.dumps(ret_obj)
 
-    async def send(self, id, msgType, data):
+    async def send(self, id: str, msgType, data):
         if msgType not in self.callback:
             raise RuntimeError("MsgType not implemented")
         msg = { "msgType": msgType,
                 "data": data}
-        return await self.call(f'com.node{id}.call', msg)
+        t = await self.call(f'com.node{id}.call', msg)
+        return MsgObj(t)
 
     async def broadcast(self, msgType, data):
         self.logging.debug(f'{self.id} broadcast: {data}')
@@ -120,4 +134,11 @@ class SimpleWS(ApplicationSession):
                 continue
             t = self.call(f'com.node{id}.call', msg)
             tasks.append(t)
-        return await asyncio.gather(*tasks)
+        ts = await asyncio.gather(*tasks)
+        return [MsgObj(t) for t in ts]
+
+    def getId(self) -> str:
+        return self.id
+
+    def getMainId(self) -> str:
+        return "0"

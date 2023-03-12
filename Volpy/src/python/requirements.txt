@@ -3,3 +3,4 @@ grpcio
 autobahn
 bidict
 cloudpickle
+addict==2.4.0

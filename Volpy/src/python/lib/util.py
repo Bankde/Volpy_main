@@ -1,6 +1,14 @@
 import os
 import errno
 from .singleton import Singleton
+from enum import Enum
+
+class Status(Enum):
+    SUCCESS = 0
+    EXECUTION_ERROR = 1
+    SERIALIZATION_ERROR = 2
+    DATA_NOT_FOUND = 3
+    DATA_ON_OTHER = 4
 
 class Counter(object, metaclass=Singleton):
     '''
@@ -30,3 +38,6 @@ def pid_exists(pid):
             raise err
     else:
         return True
+    
+def generateDataRef():
+    return str(uuid.uuid4())

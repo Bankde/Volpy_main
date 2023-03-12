@@ -5,6 +5,7 @@ nest_asyncio.apply()
 from lib import driver_repl, volpy_task_manager
 from lib.repl_ipc_caller import ipc_caller
 from lib.config import config
+import lib.volpy_task_manager as Volpy
 
 import argparse
 import logging, sys
@@ -26,8 +27,7 @@ if __name__ == '__main__':
     loop.run_until_complete(ipc_caller.waitReady())
     volpy_task_manager.TaskManager().setup(ipc_caller)
     globals = {
-        'registerRemote': volpy_task_manager.registerRemote,
-        'put': volpy_task_manager.put
+        'Volpy': Volpy
     }
     loop.run_until_complete(driver_repl.start_repl(loop, globals))
     loop.stop()

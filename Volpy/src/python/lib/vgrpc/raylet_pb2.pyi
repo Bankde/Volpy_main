@@ -7,8 +7,9 @@ from volpy_pb2 import TaskNameAndCode
 from volpy_pb2 import IdTaskArgs
 from volpy_pb2 import Status
 from volpy_pb2 import DataRef
-from volpy_pb2 import StatusWithData
+from volpy_pb2 import StatusWithDataRef
 from volpy_pb2 import Data
+from volpy_pb2 import StatusWithData
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class WorkerData(_message.Message):

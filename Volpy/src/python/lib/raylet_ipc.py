@@ -2,14 +2,14 @@ from .vgrpc import raylet_pb2_grpc, raylet_pb2
 from .vgrpc import worker_pb2_grpc, worker_pb2
 import asyncio
 from grpc import aio 
-from .raylet_scheduler import scheduler, datastore
+from .raylet_ws import session as raylet_ws
+from .raylet_scheduler import scheduler, datastore, Connection, fire_and_forget_task
 from .config import config
+
+from .util import Status, generateDataRef
 
 import logging
 import uuid
-
-def generateDataRef():
-    return str(uuid.uuid4())
 
 class TaskRunner(raylet_pb2_grpc.VolpyServicer):
     async def CreateTask(self, request, context):
@@ -23,46 +23,65 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
         scheduler.saveTask(task_name, serialized_task)
         workers = scheduler.getAllWorkers()
         tasks = []
-        # If main raylet, also broadcast to all raylets through ws
-        if config.main:
-            pass # TODO: broadcast to all raylets
+        # Broadcast to all raylets through ws
+        msg = {"task_name": task_name, "serialized_task": serialized_task}
+        await raylet_ws.broadcast(raylet_ws.API.CreateTask, msg)
         # Broadcast to all worker process
         for worker in workers:
-            task = worker.initTask(task_name, serialized_task=serialized_task)
-            tasks.append(task)
+            # For other rayletws connection, let other nodes handle by themselves.
+            if worker.getConnectionType() == Connection.IPC:
+                task = worker.initTask(task_name, serialized_task=serialized_task)
+                tasks.append(task)
         responses = await asyncio.gather(*tasks)
-        return raylet_pb2.Status(status=0)
+        return raylet_pb2.Status(status=Status.SUCCESS)
 
     async def SubmitTask(self, request, context):
-        cid = request.id
-        task_name = request.name
+        cid, task_name, args = request.id, request.name, args = request.args
         logging.info(f'Recv SubmitTask: {cid} {task_name}')
-        args = request.args
-        ref = generateDataRef()
-        worker = scheduler.acquireWorker()
-        task = worker.runTask(cid, task_name, args)
-        future = asyncio.ensure_future(task)
-        datastore.putFuture(ref, future)
-        return raylet_pb2.DataRef(dataref=ref)
+        if config.main:
+            worker = scheduler.acquireWorker()
+        else:
+            # Acquire worker from main raylet scheduler.
+            msg = {"cid": cid, "task_name": task_name, "args": args}
+            response = await raylet_ws.send(raylet_ws.getMainId, raylet_ws.API.AcquireWorker, msg)
+            worker_id = response.worker_id
+            worker = scheduler.getWorkerById(worker_id)
+
+        if worker.getConnectionType == Connection.IPC:
+            ref = generateDataRef()
+            task = worker.runTaskLocal(cid, ref, task_name, args)
+            future = asyncio.ensure_future(task)
+            datastore.putFuture(ref, future)
+            # Broadcast to all raylet that we own the data
+            msg = {"dataref": ref, "rayletid": raylet_ws.getId()}
+            response = await raylet_ws.broadcast(raylet_ws.API.SaveDataRef, msg)
+        else:
+            response = await worker.runTaskRemote(cid, task_name, args)
+            status, ref = response.status, response.dataref
+        return raylet_pb2.StatusWithDataRef(status=Status.SUCCESS, dataref=ref)
 
     async def InitWorker(self, request, context):
         # Receive directly from worker, save the IPC into the raylet.
         # If this is not main raylet, then also inform main raylet through ws
         workeripc = request.port
-        worker = scheduler.addWorker(workeripc=workeripc)
-        if not config.main:
-            pass # TODO: SEND TO MAIN RAYLET
-        # Distribute all existing tasks to the new worker
+        if config.main:
+            worker = scheduler.addWorker(workeripc=workeripc)
+        else:
+            msg = {"rayletid": raylet_ws.getId()}
+            new_worker_id = await raylet_ws.send(raylet_ws.getMainId(), raylet_ws.API.InitWorker, msg)
+            # We use the id designated from main, however the worker is connected to our local as ipc
+            # So we still set ipc here; the rayletws will only be set in main raylet.
+            worker = scheduler.addWorkerWithId(new_worker_id, workeripc=workeripc)
+        # Distribute all existing tasks to the new worker (Fire and blocking, no error handling)
         all_tasks = scheduler.getAllTasks()
         if len(all_tasks) > 0:
             async_tasks = []
             for task_name, serialized_task in all_tasks.items():
                 t = worker.initTask(task_name, serialized_task=serialized_task)
                 async_tasks.append(t)
-            responses = await asyncio.gather(*async_tasks) # Not sure what to do with the responses if error yet, but it should not
-        # Logging
+            responses = await asyncio.gather(*async_tasks)
         logging.info(f'Worker connect: {worker.worker_name} with port {workeripc}')
-        return raylet_pb2.Status(status=0)
+        return raylet_pb2.Status(status=Status.SUCCESS)
 
     async def Get(self, request, context):
         '''
@@ -72,15 +91,23 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
         fut = datastore.getFuture(ref)
         if fut:
             response = await fut
-            datastore.saveVal(ref, val=response.serialized_data, status=response.status)
         status, val = datastore.get(ref)
+        if status == Status.DATA_ON_OTHER:
+            rayletid = val
+            msg = {"dataref": ref}
+            response = raylet_ws.send(rayletid, raylet_ws.API.GetData, msg)
+            status, val = response.status, response.serialized_data
+            # Call WS to get data from other raylet then save it locally
         return raylet_pb2.StatusWithData(status=status, serialized_data=val)
 
     async def Put(self, request, context):
         val = request.serialized_data
         ref = generateDataRef()
         datastore.put(ref, val)
-        return raylet_pb2.DataRef(dataref=ref)
+        # Broadcast dataref to all raylets
+        msg = {"dataref": ref, "rayletid": raylet_ws.getId()}
+        response = await raylet_ws.broadcast(raylet_ws.API.SaveDataRef, msg)
+        return raylet_pb2.StatusWithDataRef(status=Status.SUCCESS, dataref=ref)
 
 class RayletIPCServer(object):
     def __init__(self, port):

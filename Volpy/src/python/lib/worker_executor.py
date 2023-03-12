@@ -1,4 +1,5 @@
 from .volpy_task_manager import task_manager
+from .volpy_task_manager import registerRemote, put
 import inspect
 
 tasklist = {}
@@ -19,6 +20,7 @@ async def executeTask(task_name, serialized_data):
         if inspect.iscoroutinefunction(task):
             ret = await task(*kwargs)
         else:
+            # TODO: try asyncio.to_thread
             ret = task(*kwargs)
     except:
         raise ExecutionError
