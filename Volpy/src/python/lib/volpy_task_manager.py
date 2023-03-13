@@ -42,7 +42,7 @@ class TaskManager(object, metaclass=Singleton):
             loop = asyncio.get_running_loop()
             # Blocking won't take long because raylet will generate and send ref back to us
             response = loop.run_until_complete(self.ipc_caller.SubmitTask(cid, func.__name__, serialized_data))
-            ref = response.dataref
+            status, ref = response.status, response.dataref
             dataRef = VolpyDataRef(ref)
             return dataRef
         return remote

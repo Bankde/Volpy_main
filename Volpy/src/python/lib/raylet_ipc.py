@@ -2,14 +2,17 @@ from .vgrpc import raylet_pb2_grpc, raylet_pb2
 from .vgrpc import worker_pb2_grpc, worker_pb2
 import asyncio
 from grpc import aio 
-from .raylet_ws import session as raylet_ws
-from .raylet_scheduler import scheduler, datastore, Connection, fire_and_forget_task
 from .config import config
+from .raylet_scheduler import scheduler, datastore, Connection, fire_and_forget_task
 
 from .util import Status, generateDataRef
 
 import logging
 import uuid
+
+def setup():
+    global raylet_ws
+    from .raylet_ws import session as raylet_ws
 
 class TaskRunner(raylet_pb2_grpc.VolpyServicer):
     async def CreateTask(self, request, context):
@@ -36,7 +39,7 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
         return raylet_pb2.Status(status=Status.SUCCESS)
 
     async def SubmitTask(self, request, context):
-        cid, task_name, args = request.id, request.name, args = request.args
+        cid, task_name, args = request.id, request.name, request.args
         logging.info(f'Recv SubmitTask: {cid} {task_name}')
         if config.main:
             worker = scheduler.acquireWorker()
@@ -46,8 +49,9 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
             response = await raylet_ws.send(raylet_ws.getMainId, raylet_ws.API.AcquireWorker, msg)
             worker_id = response.worker_id
             worker = scheduler.getWorkerById(worker_id)
+        logging.info(f'Worker acquire: {cid} {worker.getId()}')
 
-        if worker.getConnectionType == Connection.IPC:
+        if worker.getConnectionType() == Connection.IPC:
             ref = generateDataRef()
             task = worker.runTaskLocal(cid, ref, task_name, args)
             future = asyncio.ensure_future(task)
@@ -58,6 +62,7 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
         else:
             response = await worker.runTaskRemote(cid, task_name, args)
             status, ref = response.status, response.dataref
+        logging.info(f'Generate ref: {cid} {ref}')
         return raylet_pb2.StatusWithDataRef(status=Status.SUCCESS, dataref=ref)
 
     async def InitWorker(self, request, context):
@@ -80,7 +85,7 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
                 t = worker.initTask(task_name, serialized_task=serialized_task)
                 async_tasks.append(t)
             responses = await asyncio.gather(*async_tasks)
-        logging.info(f'Worker connect: {worker.worker_name} with port {workeripc}')
+        logging.info(f'Worker connect: {worker.getId()} with port {workeripc}')
         return raylet_pb2.Status(status=Status.SUCCESS)
 
     async def Get(self, request, context):

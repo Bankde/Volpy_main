@@ -39,8 +39,14 @@ if __name__ == '__main__':
     config.rayletipc = ipc_server.getRunningPort() # In case port=0
     logging.info(f"Running IPC port: {config.rayletipc}")
     asyncio.ensure_future(ipc_server.run(), loop=loop)
-    # Wait for server to complete initialize grpc/websocket before spawning workers
+    # Wait for server to complete initialize grpc/websocket
     loop.run_until_complete(asyncio.sleep(1))
+
+    # Link ipc and websocket module (Only for raylet, to prevent circular import)
+    from lib import raylet_scheduler
+    raylet_scheduler.Worker.setup()
+    raylet_ipc.setup()
+
     # Spawn workers
     raylet_pid = os.getpid()
     worker_procs = [None]*config.worker

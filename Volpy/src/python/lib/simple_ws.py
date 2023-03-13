@@ -53,7 +53,7 @@ class SimpleWS(ApplicationSession):
             await self.register(self.recv, f'com.node{self.id}.call')
             self.logging.info(f'Setup Node finish: sid_{self._session_id} id_{self.id}')
 
-    async def _node_register_d(self, sid, uuid) --> str:
+    async def _node_register_d(self, sid, uuid) -> str:
         '''
         Return new node id (str)
         '''
@@ -97,12 +97,11 @@ class SimpleWS(ApplicationSession):
         self.id2uuid = await self.call('com.node.update_heartbeat')
         return self.id2uuid
 
-    def setCallback(self, t:str, callback:typing.Callable):
+    def setCallback(self, t, callback:typing.Callable):
         '''
         Set the message type (string) and a callback function to
         execute when receiving the message of that type.
         '''
-        assert(isinstance(t, str))
         self.callback[t] = callback
 
     async def recv(self, msg):

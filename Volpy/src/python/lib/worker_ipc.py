@@ -27,10 +27,13 @@ class TaskRunner(worker_pb2_grpc.VolpyServicer):
         args = request.args
         try:
             data = await worker_executor.executeTask(task_name, args)
+            logging.info(f'RunTask result: {cid} {Status.SUCCESS}')
             return worker_pb2.StatusWithData(status=Status.SUCCESS, serialized_data=data)
         except worker_executor.ExecutionError:
+            logging.info(f'RunTask result: {cid} {Status.EXECUTION_ERROR}')
             return worker_pb2.StatusWithData(status=Status.EXECUTION_ERROR, serialized_data=b"")
         except worker_executor.SerializationError:
+            logging.info(f'RunTask result: {cid} {Status.SERIALIZATION_ERROR}')
             return worker_pb2.StatusWithData(status=Status.SERIALIZATION_ERROR, serialized_data=b"")
 
 class WorkerIPCServer(object):

@@ -1,21 +1,21 @@
 from .simple_ws import SimpleWS
-from .raylet_scheduler import scheduler, Connection, datastore
 from .config import config
 from autobahn.wamp.types import ComponentConfig
 from autobahn.asyncio.wamp import ApplicationRunner
+from .raylet_scheduler import scheduler, datastore, Connection, fire_and_forget_task
 
 from .util import Status, generateDataRef
 
 import asyncio
 import json
 import logging
-from enum import Enum
+from enum import IntEnum
 
 # Singleton
 session = None
 
 class VolpyWS(SimpleWS):
-    class API(Enum):
+    class API(IntEnum):
         Nop = 0
         CreateTask = 1
         WorkerRun = 2
@@ -115,7 +115,7 @@ class VolpyWS(SimpleWS):
         # Receive workerInit from ws. Save it and do not redirect it to ws
         worker = scheduler.addWorker(rayletws=rayletid)
         # No need to distribute task, as local raylet will do it in ipc.
-        logging.info(f'Worker connect: {worker.worker_name} from rayletid {rayletid}')
+        logging.info(f'Worker connect: {worker.getId()} from rayletid {rayletid}')
         msg_obj = {"status": Status.SUCCESS, "worker-id": worker.getId()}
         return msg_obj
 
@@ -141,5 +141,6 @@ def volpy_ws_create_session_runner(uuid, router, realm=None, is_main=False, logg
     realm = realm if realm else config.realm
     session = VolpyWS(ComponentConfig(realm, {}))
     session.init(uuid, is_main, logger=logging)
+    session.addHandler()
     runner = ApplicationRunner(router, realm)
     return session, runner

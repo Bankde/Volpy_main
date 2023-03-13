@@ -13,7 +13,7 @@ service Volpy {
 
   // Task
   rpc CreateTask(TaskNameAndCode) returns (Status) {}
-  rpc SubmitTask(IdTaskArgs) returns (DataRef) {}
+  rpc SubmitTask(IdTaskArgs) returns (StatusWithDataRef) {}
 
   // DataStore
   rpc Get(DataRef) returns (StatusWithData) {}

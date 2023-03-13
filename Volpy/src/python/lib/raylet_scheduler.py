@@ -1,11 +1,10 @@
 from .singleton import Singleton
 from enum import Enum
 from typing import List, Dict, Any
-import types
-from .raylet_ipc_caller import Raylet_IPCCaller as IPCCaller
-from .raylet_ws import session as raylet_ws
 import asyncio
 
+import logging
+from .config import config
 from .util import Status
 
 class Connection(Enum):
@@ -14,6 +13,13 @@ class Connection(Enum):
     WS = 2
 
 class Worker(object):
+    @classmethod
+    def setup(cls):
+        from .raylet_ipc_caller import Raylet_IPCCaller as IPCCaller
+        from .raylet_ws import session as raylet_ws
+        cls.IPCCaller_init = IPCCaller
+        cls.raylet_ws = raylet_ws
+
     def __init__(self, idx : str, workeripc: int = None, rayletid: str = None):
         assert(not (workeripc and rayletid))
         self.idx = idx
@@ -21,7 +27,7 @@ class Worker(object):
         if workeripc:
             self.connection = Connection.IPC
             self.workeripc = workeripc
-            self.ipccaller = IPCCaller()
+            self.ipccaller = self.IPCCaller_init()
             self.ipccaller.connect(f'localhost:{workeripc}')
         elif rayletid:
             self.connection = Connection.WS
@@ -31,8 +37,10 @@ class Worker(object):
 
     def lock(self):
         self.locked = True
+        logging.info(f'Worker lock: {self.getId()}')
 
     def unlock(self):
+        logging.info(f'Worker unlock: {self.getId()}')
         self.locked = False
 
     def isLocked(self) -> bool:
@@ -71,7 +79,10 @@ class Worker(object):
         response = await self.ipccaller.RunTask(cid, name, args)
         msg = {"cid": cid, "worker_id": self.idx}
         datastore.saveVal(ref, val=response.serialized_data, status=response.status)
-        await raylet_ws.send(raylet_ws.getMainId, raylet_ws.API.FreeWorker, msg)
+        if config.main:
+            self.unlock()
+        else:
+            await self.raylet_ws.send(self.raylet_ws.getMainId, self.raylet_ws.API.FreeWorker, msg)
         return response
     
     async def runTaskRemote(self, cid: str, name: str, args: bytes):
@@ -81,7 +92,7 @@ class Worker(object):
         '''
         assert(self.connection == Connection.WS)
         msg = {"cid": cid, "worker_id": self.idx, "task_name": name, "args": args}
-        response = await raylet_ws.send(self.rayletid, raylet_ws.API.WorkerRun, msg)
+        response = await self.raylet_ws.send(self.rayletid, self.raylet_ws.API.WorkerRun, msg)
         return response
 
 class Scheduler(object, metaclass=Singleton):
@@ -140,7 +151,7 @@ class Scheduler(object, metaclass=Singleton):
             acq_id = self.rr % self.workerNum
             cur_worker = self._workerList[acq_id]
             self.rr += 1
-            if cur_worker.isLocked == False:
+            if cur_worker.isLocked() == False:
                 cur_worker.lock()
                 return cur_worker
         return None
@@ -173,11 +184,11 @@ class Datastore(object, metaclass=Singleton):
             return (Status.DATA_NOT_FOUND, None)
         
         obj = self.dict[ref]
-        if self.val != None:
+        if obj.val != None:
             return (obj.status, obj.val)
         
-        assert(self.loc != None)
-        return (Status.DATA_ON_OTHER, self.loc)
+        assert(obj.loc != None)
+        return (Status.DATA_ON_OTHER, obj.loc)
 
     def put(self, ref:str, val):
         obj = self.VolpyData(ref, val=val)

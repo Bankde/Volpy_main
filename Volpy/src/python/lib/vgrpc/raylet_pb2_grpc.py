@@ -28,7 +28,7 @@ class VolpyStub(object):
         self.SubmitTask = channel.unary_unary(
                 '/raylet.Volpy/SubmitTask',
                 request_serializer=volpy__pb2.IdTaskArgs.SerializeToString,
-                response_deserializer=volpy__pb2.DataRef.FromString,
+                response_deserializer=volpy__pb2.StatusWithDataRef.FromString,
                 )
         self.Get = channel.unary_unary(
                 '/raylet.Volpy/Get',
@@ -94,7 +94,7 @@ def add_VolpyServicer_to_server(servicer, server):
             'SubmitTask': grpc.unary_unary_rpc_method_handler(
                     servicer.SubmitTask,
                     request_deserializer=volpy__pb2.IdTaskArgs.FromString,
-                    response_serializer=volpy__pb2.DataRef.SerializeToString,
+                    response_serializer=volpy__pb2.StatusWithDataRef.SerializeToString,
             ),
             'Get': grpc.unary_unary_rpc_method_handler(
                     servicer.Get,
@@ -163,7 +163,7 @@ class Volpy(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/raylet.Volpy/SubmitTask',
             volpy__pb2.IdTaskArgs.SerializeToString,
-            volpy__pb2.DataRef.FromString,
+            volpy__pb2.StatusWithDataRef.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

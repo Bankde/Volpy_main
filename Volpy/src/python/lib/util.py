@@ -1,9 +1,10 @@
 import os
 import errno
 from .singleton import Singleton
-from enum import Enum
+from enum import IntEnum
+import uuid
 
-class Status(Enum):
+class Status(IntEnum):
     SUCCESS = 0
     EXECUTION_ERROR = 1
     SERIALIZATION_ERROR = 2
