@@ -2,7 +2,7 @@ import codepickle
 import cloudpickle
 from .singleton import Singleton
 import asyncio
-from .util import counter as counter
+from .util import counter, Status
 
 # We don't use import singleton ipc_caller here because 
 # this module could be in either REPL or workers.
@@ -43,6 +43,8 @@ class TaskManager(object, metaclass=Singleton):
             # Blocking won't take long because raylet will generate and send ref back to us
             response = loop.run_until_complete(self.ipc_caller.SubmitTask(cid, func.__name__, serialized_data))
             status, ref = response.status, response.dataref
+            if status != Status.SUCCESS:
+                raise Exception(f"Error creating task: {status}")
             dataRef = VolpyDataRef(ref)
             return dataRef
         return remote

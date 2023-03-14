@@ -6,10 +6,14 @@ import uuid
 
 class Status(IntEnum):
     SUCCESS = 0
-    EXECUTION_ERROR = 1
-    SERIALIZATION_ERROR = 2
-    DATA_NOT_FOUND = 3
-    DATA_ON_OTHER = 4
+
+    EXECUTION_ERROR = 11
+    SERIALIZATION_ERROR = 12
+
+    DATA_NOT_FOUND = 21
+    DATA_ON_OTHER = 22
+
+    WORKER_BUSY = 31
 
 class Counter(object, metaclass=Singleton):
     '''

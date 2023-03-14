@@ -82,7 +82,8 @@ class Worker(object):
         if config.main:
             self.unlock()
         else:
-            await self.raylet_ws.send(self.raylet_ws.getMainId, self.raylet_ws.API.FreeWorker, msg)
+            await self.raylet_ws.send(self.raylet_ws.getMainId(), self.raylet_ws.API.FreeWorker, msg)
+        logging.info(f"Task done: {cid}")
         return response
     
     async def runTaskRemote(self, cid: str, name: str, args: bytes):
@@ -161,7 +162,7 @@ class Scheduler(object, metaclass=Singleton):
         worker.unlock()
 
     def getWorkerById(self, worker_id: str) -> Worker:
-        return self._id2worker[worker_id]
+        return self._id2worker.get(worker_id, None)
 
 class Datastore(object, metaclass=Singleton):
     class VolpyData(object):

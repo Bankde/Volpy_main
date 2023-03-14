@@ -46,11 +46,14 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
         else:
             # Acquire worker from main raylet scheduler.
             msg = {"cid": cid, "task_name": task_name, "args": args}
-            response = await raylet_ws.send(raylet_ws.getMainId, raylet_ws.API.AcquireWorker, msg)
+            response = await raylet_ws.send(raylet_ws.getMainId(), raylet_ws.API.AcquireWorker, msg)
             worker_id = response.worker_id
             worker = scheduler.getWorkerById(worker_id)
-        logging.info(f'Worker acquire: {cid} {worker.getId()}')
+        if worker == None:
+            logging.info(f'All worker busy: {cid}')
+            return raylet_pb2.StatusWithDataRef(status=Status.WORKER_BUSY, dataref="")
 
+        logging.info(f'Worker acquire: {cid} {worker.getId()}')
         if worker.getConnectionType() == Connection.IPC:
             ref = generateDataRef()
             task = worker.runTaskLocal(cid, ref, task_name, args)
@@ -73,7 +76,8 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
             worker = scheduler.addWorker(workeripc=workeripc)
         else:
             msg = {"rayletid": raylet_ws.getId()}
-            new_worker_id = await raylet_ws.send(raylet_ws.getMainId(), raylet_ws.API.InitWorker, msg)
+            response = await raylet_ws.send(raylet_ws.getMainId(), raylet_ws.API.InitWorker, msg)
+            status, new_worker_id = response.status, response.worker_id
             # We use the id designated from main, however the worker is connected to our local as ipc
             # So we still set ipc here; the rayletws will only be set in main raylet.
             worker = scheduler.addWorkerWithId(new_worker_id, workeripc=workeripc)
@@ -100,7 +104,7 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
         if status == Status.DATA_ON_OTHER:
             rayletid = val
             msg = {"dataref": ref}
-            response = raylet_ws.send(rayletid, raylet_ws.API.GetData, msg)
+            response = await raylet_ws.send(rayletid, raylet_ws.API.GetData, msg)
             status, val = response.status, response.serialized_data
             # Call WS to get data from other raylet then save it locally
         return raylet_pb2.StatusWithData(status=status, serialized_data=val)

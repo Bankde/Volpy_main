@@ -46,7 +46,7 @@ class VolpyWS(SimpleWS):
         # Return dataref, the result data of the task will store locally.
         self.setCallback(self.API.WorkerRun, self.workerRun)
         # {"rayletid": str}
-        # ret: {"status": int, "worker-id": str}
+        # ret: {"status": int, "worker_id": str}
         # Tell the main raylet that new worker has been connected.
         # The scheduler will save worker in the list and return the new assigned Id
         self.setCallback(self.API.InitWorker, self.initWorker)
@@ -83,6 +83,10 @@ class VolpyWS(SimpleWS):
         cid, task_name, args = data["cid"], data["task_name"], data["args"]
         logging.info(f'Recv AcquireWorker: {cid} {task_name}')
         worker = scheduler.acquireWorker()
+        if worker == None:
+            logging.info(f'All worker busy: {cid}')
+            msg_obj = {"status": Status.WORKER_BUSY, "worker_id": "-1"}
+            return msg_obj
         logging.info(f'Worker acquire: {cid} {worker.getId()}')
         msg_obj = {"status": Status.SUCCESS, "worker_id": worker.getId()}
         return msg_obj
@@ -90,8 +94,8 @@ class VolpyWS(SimpleWS):
     async def freeWorker(self, data):
         cid, worker_id = data["cid"], data["worker_id"]
         logging.info(f'Recv FreeWorker: {cid} {worker_id}')
-        worker = scheduler.getWorkerById(worker_id).unlock()
-        msg_obj = {"status": Status.SUCCESS, "worker_id": worker.getId()}
+        scheduler.getWorkerById(worker_id).unlock()
+        msg_obj = {"status": Status.SUCCESS, "worker_id": worker_id}
         return msg_obj
 
     async def workerRun(self, data):
@@ -99,7 +103,7 @@ class VolpyWS(SimpleWS):
         logging.info(f'Recv workerRun: {cid} {worker_id} {task_name}')
         worker = scheduler.getWorkerById(worker_id)
         # There shouldn't be a workerRun call that will redirect us back to ws
-        assert(worker.getConnectionType == Connection.IPC)
+        assert(worker.getConnectionType() == Connection.IPC)
         ref = generateDataRef()
         task = worker.runTaskLocal(cid, ref, task_name, args)
         future = asyncio.ensure_future(task)
@@ -116,7 +120,7 @@ class VolpyWS(SimpleWS):
         worker = scheduler.addWorker(rayletws=rayletid)
         # No need to distribute task, as local raylet will do it in ipc.
         logging.info(f'Worker connect: {worker.getId()} from rayletid {rayletid}')
-        msg_obj = {"status": Status.SUCCESS, "worker-id": worker.getId()}
+        msg_obj = {"status": Status.SUCCESS, "worker_id": worker.getId()}
         return msg_obj
 
     async def saveDataRef(self, data):

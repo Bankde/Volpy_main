@@ -2,7 +2,7 @@ import asyncio
 from autobahn.asyncio.wamp import ApplicationSession
 
 from bidict import bidict
-import addict as MsgObj
+from addict import Dict as MsgObj
 import typing
 import logging
 import json
@@ -41,7 +41,7 @@ class SimpleWS(ApplicationSession):
             # Main raylet id should be 0
             self.id = await self._node_register_d(self._session_id, self.uuid)
             await self.register(self.recv, f'com.node{self.id}.call')
-            assert(self.id == 0)
+            assert(self.id == "0")
             self.logging.info("Setup WS Main Raylet finish")
         else:
             '''
@@ -111,9 +111,10 @@ class SimpleWS(ApplicationSession):
             raise RuntimeError("MsgType not implemented")
         f = self.callback[msgType]
         ret_obj = await f(MsgObj(data))
-        return json.dumps(ret_obj)
+        return ret_obj
 
     async def send(self, id: str, msgType, data):
+        assert(type(id) == str)
         if msgType not in self.callback:
             raise RuntimeError("MsgType not implemented")
         msg = { "msgType": msgType,
