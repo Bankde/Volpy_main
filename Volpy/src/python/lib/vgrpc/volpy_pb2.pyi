@@ -16,6 +16,10 @@ class DataRef(_message.Message):
     dataref: str
     def __init__(self, dataref: _Optional[str] = ...) -> None: ...
 
+class Empty(_message.Message):
+    __slots__ = []
+    def __init__(self) -> None: ...
+
 class IdTaskArgs(_message.Message):
     __slots__ = ["args", "id", "name"]
     ARGS_FIELD_NUMBER: _ClassVar[int]

@@ -28,7 +28,8 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
         tasks = []
         # Broadcast to all raylets through ws
         msg = {"task_name": task_name, "serialized_task": serialized_task}
-        await raylet_ws.broadcast(raylet_ws.API.CreateTask, msg)
+        task = raylet_ws.broadcast(raylet_ws.API.CreateTask, msg)
+        tasks.append(task)
         # Broadcast to all worker process
         for worker in workers:
             # For other rayletws connection, let other nodes handle by themselves.
@@ -81,16 +82,11 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
             # We use the id designated from main, however the worker is connected to our local as ipc
             # So we still set ipc here; the rayletws will only be set in main raylet.
             worker = scheduler.addWorkerWithId(new_worker_id, workeripc=workeripc)
-        # Distribute all existing tasks to the new worker (Fire and blocking, no error handling)
-        all_tasks = scheduler.getAllTasks()
-        if len(all_tasks) > 0:
-            async_tasks = []
-            for task_name, serialized_task in all_tasks.items():
-                t = worker.initTask(task_name, serialized_task=serialized_task)
-                async_tasks.append(t)
-            responses = await asyncio.gather(*async_tasks)
-        logging.info(f'Worker connect: {worker.getId()} with port {workeripc}')
         return raylet_pb2.Status(status=Status.SUCCESS)
+    
+    async def GetAllTasks(self, request, context):
+        all_tasks = scheduler.getAllTasks()
+        return raylet_pb2.AllTasks(taskmap=all_tasks)
 
     async def Get(self, request, context):
         '''

@@ -32,6 +32,9 @@ class Worker_IPCCaller(object, metaclass=Singleton):
 
     async def InitWorker(self, port):
         return await self.stub.InitWorker(raylet_pb2.WorkerData(port=port))
+    
+    async def GetAllTasks(self):
+        return await self.stub.GetAllTasks(raylet_pb2.Empty())
 
     async def Get(self, ref):
         return await self.stub.Get(raylet_pb2.DataRef(dataref=ref))

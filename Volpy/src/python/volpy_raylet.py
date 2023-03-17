@@ -46,6 +46,13 @@ if __name__ == '__main__':
     from lib import raylet_scheduler
     raylet_scheduler.Worker.setup()
     raylet_ipc.setup()
+    # Get all declared tasks before joining
+    if not config.main:
+        response = loop.run_until_complete(session.send(session.getMainId(), session.API.GetAllTasks, {}))
+        all_tasks = response.taskmap
+        for task_name in all_tasks:
+            raylet_scheduler.scheduler.saveTask(task_name, all_tasks[task_name])
+
 
     # Spawn workers
     raylet_pid = os.getpid()

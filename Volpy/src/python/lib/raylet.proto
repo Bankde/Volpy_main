@@ -7,6 +7,10 @@ message WorkerData {
   string port = 1; // It's easier to deal with str when we don't need input validation here
 }
 
+message AllTasks {
+  map<string, bytes> taskmap = 1;
+}
+
 service Volpy {
   // Worker
   rpc InitWorker(WorkerData) returns (Status) {}
@@ -14,6 +18,7 @@ service Volpy {
   // Task
   rpc CreateTask(TaskNameAndCode) returns (Status) {}
   rpc SubmitTask(IdTaskArgs) returns (StatusWithDataRef) {}
+  rpc GetAllTasks(Empty) returns (AllTasks) {}
 
   // DataStore
   rpc Get(DataRef) returns (StatusWithData) {}

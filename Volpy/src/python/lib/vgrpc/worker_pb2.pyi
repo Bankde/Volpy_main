@@ -9,4 +9,5 @@ from volpy_pb2 import DataRef
 from volpy_pb2 import StatusWithDataRef
 from volpy_pb2 import Data
 from volpy_pb2 import StatusWithData
+from volpy_pb2 import Empty
 DESCRIPTOR: _descriptor.FileDescriptor

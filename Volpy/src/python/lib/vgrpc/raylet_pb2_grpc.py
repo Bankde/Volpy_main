@@ -30,6 +30,11 @@ class VolpyStub(object):
                 request_serializer=volpy__pb2.IdTaskArgs.SerializeToString,
                 response_deserializer=volpy__pb2.StatusWithDataRef.FromString,
                 )
+        self.GetAllTasks = channel.unary_unary(
+                '/raylet.Volpy/GetAllTasks',
+                request_serializer=volpy__pb2.Empty.SerializeToString,
+                response_deserializer=raylet__pb2.AllTasks.FromString,
+                )
         self.Get = channel.unary_unary(
                 '/raylet.Volpy/Get',
                 request_serializer=volpy__pb2.DataRef.SerializeToString,
@@ -65,6 +70,12 @@ class VolpyServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetAllTasks(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def Get(self, request, context):
         """DataStore
         """
@@ -95,6 +106,11 @@ def add_VolpyServicer_to_server(servicer, server):
                     servicer.SubmitTask,
                     request_deserializer=volpy__pb2.IdTaskArgs.FromString,
                     response_serializer=volpy__pb2.StatusWithDataRef.SerializeToString,
+            ),
+            'GetAllTasks': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetAllTasks,
+                    request_deserializer=volpy__pb2.Empty.FromString,
+                    response_serializer=raylet__pb2.AllTasks.SerializeToString,
             ),
             'Get': grpc.unary_unary_rpc_method_handler(
                     servicer.Get,
@@ -164,6 +180,23 @@ class Volpy(object):
         return grpc.experimental.unary_unary(request, target, '/raylet.Volpy/SubmitTask',
             volpy__pb2.IdTaskArgs.SerializeToString,
             volpy__pb2.StatusWithDataRef.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetAllTasks(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/raylet.Volpy/GetAllTasks',
+            volpy__pb2.Empty.SerializeToString,
+            raylet__pb2.AllTasks.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

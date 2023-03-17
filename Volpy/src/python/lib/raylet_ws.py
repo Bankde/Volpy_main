@@ -18,11 +18,12 @@ class VolpyWS(SimpleWS):
     class API(IntEnum):
         Nop = 0
         CreateTask = 1
-        WorkerRun = 2
+        GetAllTasks = 2
 
         InitWorker = 11
         AcquireWorker = 12
         FreeWorker = 13
+        WorkerRun = 14
 
         SaveDataRef = 21
         GetData = 22
@@ -31,6 +32,9 @@ class VolpyWS(SimpleWS):
         # {"task_name": str, "serialized_task": bytes}
         # ret: {"status": int}
         self.setCallback(self.API.CreateTask, self.createTask)
+        # {}
+        # ret: {"taskmap": dict<name, bytes>}
+        self.setCallback(self.API.GetAllTasks, self.getAllTasks)
         # {"cid": int, "task_name": str, "args": bytes}
         # ret: {"status": int, "worker_id": str} 
         # Acquire worker from main raylet. Lock the worker.
@@ -77,6 +81,14 @@ class VolpyWS(SimpleWS):
             tasks.append(task)
         responses = await asyncio.gather(*tasks)
         msg_obj = {"status": Status.SUCCESS}
+        return msg_obj
+    
+    async def getAllTasks(self, data):
+        """
+        Return all of the declared tasks
+        """
+        data = scheduler.getAllTasks()
+        msg_obj = {"taskmap": data}
         return msg_obj
 
     async def acquireWorker(self, data):
