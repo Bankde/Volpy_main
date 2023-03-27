@@ -2,7 +2,9 @@ from .simple_ws import SimpleWS
 from .config import config
 from autobahn.wamp.types import ComponentConfig
 from autobahn.asyncio.wamp import ApplicationRunner
-from .raylet_scheduler import scheduler, datastore, Connection, fire_and_forget_task
+from .raylet_scheduler import scheduler, datastore
+from .raylet_distribute_logic import Worker_Connection, Connection
+from . import raylet_distribute_logic as Raylet_Worker_Logic
 
 from .util import Status, generateDataRef
 
@@ -71,13 +73,13 @@ class VolpyWS(SimpleWS):
         task_name, serialized_task = data["task_name"], data["serialized_task"]
         logging.info(f'Recv CreateTask: {task_name}')
         scheduler.saveTask(task_name, serialized_task)
+        # Broadcast to all worker ipc
         workers = scheduler.getAllLocalWorkers()
         if config.main:
             logging.warn(f'Main raylet receive createTask from WS (ok if you attach REPL to non-main)')
         tasks = []
-        # Broadcast to all worker ipc
         for worker in workers:
-            task = worker.initTask(task_name, serialized_task=serialized_task)
+            task = Raylet_Worker_Logic.initTask(worker, task_name, serialized_task=serialized_task)
             tasks.append(task)
         responses = await asyncio.gather(*tasks)
         msg_obj = {"status": Status.SUCCESS}
@@ -117,7 +119,7 @@ class VolpyWS(SimpleWS):
         # There shouldn't be a workerRun call that will redirect us back to ws
         assert(worker.getConnectionType() == Connection.IPC)
         ref = generateDataRef()
-        task = worker.runTaskLocal(cid, ref, task_name, args)
+        task = Raylet_Worker_Logic.runTaskLocal(worker, cid, ref, task_name, args)
         future = asyncio.ensure_future(task)
         datastore.putFuture(ref, future)
         # Broadcast to all raylet that we own the data
@@ -129,9 +131,10 @@ class VolpyWS(SimpleWS):
     async def initWorker(self, data):
         rayletid = data["rayletid"]
         # Receive workerInit from ws. Save it and do not redirect it to ws
-        worker = scheduler.addWorker(rayletws=rayletid)
+        wcon = Worker_Connection(rayletid=rayletid)
+        worker = scheduler.addWorker(connection=wcon)
         # No need to distribute task, as local raylet will do it in ipc.
-        logging.info(f'Worker connect: {worker.getId()} from rayletid {rayletid}')
+        logging.info(f'Worker connect (main,ws): {worker.getId()} rayletid {rayletid}')
         msg_obj = {"status": Status.SUCCESS, "worker_id": worker.getId()}
         return msg_obj
 

@@ -5,7 +5,6 @@ from bidict import bidict
 from addict import Dict as MsgObj
 import typing
 import logging
-import json
 
 '''
 crossbar start
@@ -30,6 +29,10 @@ class SimpleWS(ApplicationSession):
         self.logging = logger
 
     async def onJoin(self, details):
+        '''
+        Node is subscribing to cluster.heartbeat to update their node online list.
+        For the main, no need to subscribe to any node heartbeat, we use wamp.session.on_leave subscription instead.
+        '''
         if self.id != None:
             # Already init
             return
@@ -37,7 +40,6 @@ class SimpleWS(ApplicationSession):
         if self.is_main:
             await self.register(self._node_register_d, 'com.node.register')
             await self.subscribe(self._node_unregister_d, 'wamp.session.on_leave')
-            await self.register(self._node_heartbeat_d, 'com.node.update_heartbeat')
             # Main raylet id should be 0
             self.id = await self._node_register_d(self._session_id, self.uuid)
             await self.register(self.recv, f'com.node{self.id}.call')
@@ -82,20 +84,12 @@ class SimpleWS(ApplicationSession):
         data = {"id2uuid": set_id2uuid}
         self.publish('com.cluster.heartbeat', data)
 
-    async def _node_heartbeat_d(self):
-        return list(self.id2uuid.items())
-
     async def _cluster_heartbeat_d(self, data):
-        # Node receiving heartbeat update from main
+        '''
+        Node receiving heartbeat update from main.
+        '''
         set_id2uuid = data["id2uuid"]
         self.id2uuid = bidict(set_id2uuid)
-
-    async def _send_heartbeat(self):
-        '''
-        Call from node to main raylet, receive nodelist (id2uuid) back and update it.
-        '''
-        self.id2uuid = await self.call('com.node.update_heartbeat')
-        return self.id2uuid
 
     def setCallback(self, t, callback:typing.Callable):
         '''

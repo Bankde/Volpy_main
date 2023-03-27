@@ -1,5 +1,10 @@
+from __future__ import annotations
+import typing
+if typing.TYPE_CHECKING:
+    from .raylet_distribute_logic import Worker_Connection
+
+from .raylet_distribute_logic import Connection
 from .singleton import Singleton
-from enum import Enum
 from typing import List, Dict, Any
 import asyncio
 
@@ -7,33 +12,11 @@ import logging
 from .config import config
 from .util import Status
 
-class Connection(Enum):
-    NONE = 0
-    IPC = 1
-    WS = 2
-
 class Worker(object):
-    @classmethod
-    def setup(cls):
-        from .raylet_ipc_caller import Raylet_IPCCaller as IPCCaller
-        from .raylet_ws import session as raylet_ws
-        cls.IPCCaller_init = IPCCaller
-        cls.raylet_ws = raylet_ws
-
-    def __init__(self, idx : str, workeripc: int = None, rayletid: str = None):
-        assert(not (workeripc and rayletid))
+    def __init__(self, idx : str, connection: Worker_Connection):
         self.idx = idx
         self.locked = False
-        if workeripc:
-            self.connection = Connection.IPC
-            self.workeripc = workeripc
-            self.ipccaller = self.IPCCaller_init()
-            self.ipccaller.connect(f'localhost:{workeripc}')
-        elif rayletid:
-            self.connection = Connection.WS
-            self.rayletid = rayletid
-        else:
-            raise
+        self.connection = connection
 
     def lock(self):
         self.locked = True
@@ -48,54 +31,10 @@ class Worker(object):
 
     def getId(self) -> str:
         return self.idx
-
+    
     def getConnectionType(self) -> Connection:
-        return self.connection
-
-    def getRayletId(self) -> str:
-        return self.rayletid
+        return self.connection.getConnectionType()
     
-    def getIPCPort(self) -> int:
-        return self.workeripc
-
-    async def initTask(self, name, serialized_task):
-        '''
-        Blocking, waiting for the other side to finish initializing task
-        '''
-        if self.connection == Connection.IPC:
-            return await self.ipccaller.InitTask(name, serialized_task)
-        else:
-            # There shouldn't be any initTask send to worker via this method
-            # initTask should be broadcasted through rayletws instead of iterating each worker.
-            raise
-
-    async def runTaskLocal(self, cid: str, ref: str, name: str, args: bytes):
-        '''
-        Run the task and do all routines when the task is finished.
-        1. Save value into datastore
-        2. Call FreeWorker to main raylet
-        '''
-        assert(self.connection == Connection.IPC)
-        response = await self.ipccaller.RunTask(cid, name, args)
-        msg = {"cid": cid, "worker_id": self.idx}
-        datastore.saveVal(ref, val=response.serialized_data, status=response.status)
-        if config.main:
-            self.unlock()
-        else:
-            await self.raylet_ws.send(self.raylet_ws.getMainId(), self.raylet_ws.API.FreeWorker, msg)
-        logging.info(f"Task done: {cid}")
-        return response
-    
-    async def runTaskRemote(self, cid: str, name: str, args: bytes):
-        '''
-        UNLIKE runTaskLocal, we call the remote then we wait for the response status
-        to ensure that the task is started, dataref is saved and broadcasted.
-        '''
-        assert(self.connection == Connection.WS)
-        msg = {"cid": cid, "worker_id": self.idx, "task_name": name, "args": args}
-        response = await self.raylet_ws.send(self.rayletid, self.raylet_ws.API.WorkerRun, msg)
-        return response
-
 class Scheduler(object, metaclass=Singleton):
 
     def __init__(self):
@@ -111,26 +50,26 @@ class Scheduler(object, metaclass=Singleton):
     def getAllTasks(self) -> Dict[str, bytes]:
         return self.tasks
 
-    def addWorker(self, workeripc=None, rayletws=None) -> Worker:
+    def addWorker(self, connection: Worker_Connection) -> Worker:
         '''
         Add and connect worker
         Either IPC (grpc) or WebsocketId (in case of different node)
         '''
         worker_id = str(self.workerNum)
-        worker = Worker(worker_id, workeripc, rayletws)
+        worker = Worker(worker_id, connection)
         self._workerList.append(worker)
         self.workerNum += 1
         self._id2worker[worker_id] = worker
         return worker
 
-    def addWorkerWithId(self, worker_id: str, workeripc=None, rayletws=None) -> Worker:
+    def addWorkerWithId(self, worker_id: str, connection: Worker_Connection) -> Worker:
         '''
         Add and connect worker with Id
         Use this API when Id is assigned from the main raylet.
         Either IPC (grpc) or WebsocketId (in case of different node)
         '''
         worker_id = str(worker_id)
-        worker = Worker(worker_id, workeripc, rayletws)
+        worker = Worker(worker_id, connection)
         self.workerNum += 1
         self._workerList.append(worker)
         self._id2worker[worker_id] = worker
@@ -140,7 +79,7 @@ class Scheduler(object, metaclass=Singleton):
         return self._workerList
 
     def getAllLocalWorkers(self) -> List[Worker]:
-        return [worker for worker in self._workerList if worker.getConnectionType() == Connection.IPC ]
+        return [worker for worker in self._workerList if worker.connection.getConnectionType() == Connection.IPC ]
 
     def acquireWorker(self) -> Worker:
         '''
