@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Volpy Application</title>
+    <link rel="stylesheet" href="css/main.css">
+  </head>
+  <body>
+    <div class="content">
+      <h1>Hello, world!</h1>
+      <script src="/js/autobahn.min.js"></script>
+      <script type="module" src="/js/raylet_ws.js"></script>
+      <script type="module" src="/js/main.js"></script>
+      Websocket address: <input class="input default-input" type="text" id="wssAddr" value="ws://127.0.0.1:8080/ws" placeholder=""><br>
+      Websocket realm:: <input class="input default-input" type="text" id="wssRealm" value="Volpy" placeholder=""><br>
+      Worker number: <input class="input default-input" type="number" id="workerNum" value="4" placeholder=""><br>
+      <button class="input" id="runNodeBtn">Click me</button>
+    </div>
+
+    <script>
+      // Get all input elements with the "default-input" class
+      const defaultInputs = document.querySelectorAll('.default-input');
+      
+      // Add an event listener to each input element
+      defaultInputs.forEach(input => {
+        input.addEventListener('focus', function() {
+          // Clear the default value if it is the current value
+          if (this.value === this.defaultValue) {
+            this.value = '';
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
+
