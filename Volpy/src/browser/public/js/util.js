@@ -1,6 +1,6 @@
-export var logging = console.log
+var logging = console.log
 
-export class bidict {
+class bidict {
     constructor() {
         if (arguments.length == 0) {
             this.map = {};
@@ -26,12 +26,14 @@ export class bidict {
     }
 }
 
-export const UUIDGeneratorBrowser = () =>
-  ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
-    (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16)
-  );
+function UUIDGeneratorBrowser() {
+    return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11)
+        .replace(/[018]/g, c =>
+            (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16)
+        );
+}
 
-export class Status {
+class Status {
   static SUCCESS = 0;
 
   static EXECUTION_ERROR = 11;
@@ -41,4 +43,11 @@ export class Status {
   static DATA_ON_OTHER = 22;
 
   static WORKER_BUSY = 31;
+}
+
+module.exports = {
+    logging: logging,
+    bidict: bidict,
+    UUIDGeneratorBrowser: UUIDGeneratorBrowser,
+    Status: Status
 }

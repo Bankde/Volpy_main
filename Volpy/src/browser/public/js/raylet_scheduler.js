@@ -1,4 +1,4 @@
-import { logging } from './util.js';
+const { logging } = require('./util.js');
 
 class Worker {
     constructor(idx, connection) {
@@ -128,13 +128,13 @@ class Datastore {
   
     get(ref) {
         if (!(ref in this.dict)) {
-            return [Status.DATA_NOT_FOUND, null];
+            return [ Status.DATA_NOT_FOUND, null ];
         }
         const obj = this.dict[ref];
         if (obj.val !== null) {
-            return [obj.status, obj.val];
+            return [ obj.status, obj.val ];
         }
-        return [Status.DATA_ON_OTHER, obj.loc];
+        return [ Status.DATA_ON_OTHER, obj.loc ];
     }
   
     put(ref, val) {
@@ -170,5 +170,5 @@ class Datastore {
         obj.status = status;
         obj.done = true;
     }
-  }
+}
   

@@ -9,7 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@mixer/postmessage-rpc": "^1.1.4"
+    "@mixer/postmessage-rpc": "^1.1.4",
+    "autobahn-browser": "^22.11.1"
   },
   "devDependencies": {
     "browserify": "^17.0.0",

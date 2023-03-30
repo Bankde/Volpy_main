@@ -1,11 +1,10 @@
-import { SimpleWS } from './simple_ws.js';
-import { UUIDGeneratorBrowser } from './util.js';
+const { VolpyWSCreateSession } = require('./raylet_ws.js');
+const { UUIDGeneratorBrowser } = require('./util.js');
 
 document.addEventListener('DOMContentLoaded', function() {
     const button = document.getElementById("runNodeBtn");
     button.addEventListener('click', runNode);
 });
-
 
 function runNode() {
     let wssAddr = document.getElementById("wssAddr").value;
@@ -17,9 +16,7 @@ function runNode() {
         url: wssAddr,
         realm: realm
     }
-    let session = new SimpleWS(config);
-    let uuid = UUIDGeneratorBrowser();
-    console.log("Current NodeID: " + uuid);
-    session.init(uuid);
-    session.start();
+    config.uuid = UUIDGeneratorBrowser();
+    console.log("Current NodeID: " + config.uuid);
+    session = VolpyWSCreateSession(config);
 }

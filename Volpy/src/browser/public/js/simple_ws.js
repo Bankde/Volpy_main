@@ -1,74 +1,47 @@
-try {
-   // for Node.js
-   var autobahn = require('autobahn');
-} catch (e) {
-   // for browsers (where AutobahnJS is available globally)
-   var autobahn = window.autobahn;
-}
+const autobahn = require('autobahn-browser');
+const { bidict, logging } = require('./util.js');
 
-import { bidict, logging } from './util.js';
-
-export class SimpleWS {
+class SimpleWS {
    constructor(config) {
       this.connection = new autobahn.Connection({url: config["url"], realm: config["realm"]});
-      this.connection.onopen = async function (session) {
-         if (this.id != null) {
-            return;
-         }
-         this._session_id = session.id
-         logging(`Setup UUID: ${this.uuid}`);
-
-         await session.subscribe(this._cluster_heartbeat_d, 'com.cluster.heartbeat');
-         this.id = await session.call('com.node.register', this._session_id, this.uuid);
-         await session.register(this.recv, `com.node${this.id}.call`);
-         logging(`Setup Node finish: sid_${this._session_id} id_${this.id}`)
+      this.connection.onopen = (session) => {
+         this.onJoin(session);
       };
    }
+      
+   async onJoin(session) {
+      if (this.id != null) {
+         return;
+      }
+      this._session_id = session._id;
+      logging(`Setup UUID: ${this.uuid}`);
 
-   async _node_register_d(sid, uuid) {
+      await session.subscribe('com.cluster.heartbeat', (args) => {this._cluster_heartbeat_d(args)});
+      this.id = await session.call('com.node.register', [ this._session_id, this.uuid ]);
+      await session.register(`com.node${this.id}.call`, (args) => {this.recv(args);});
+      logging(`Setup Node finish: sid_${this._session_id} id_${this.id}`);
+   }
+
+   async _cluster_heartbeat_d(args) {
       /*
-      Return new node id (str)
+      Params: data of id2uuid
+      Return: None
       */
-      if (uuid in this.id2uuid.getRev()) {
-         let id = this.id2uuid.getRev()[uuid];
-         return id;
-      } else {
-         // Generate id for node
-         let id = str(this.id2uuid.getMap().length);
-         this.id2uuid.put(id, uuid);
-         this.id2sid.put(id, sid);
-         logging(`Reg: ${id}, ${sid}`)
-         await this._cluster_update_call();
-         return id;
-      }
-   }
-
-   async _node_unregister_d(sid) {
-      if (sid in this.id2sid.getRev()) {
-         let id = this.id2sid.getRev()[sid];
-         logging(`Unreg: ${id}, ${sid}`);
-         this.id2uuid.del(id);
-         this.id2sid.del(id);
-         await this._cluster_update_call();
-      }
-   }
-
-   async _cluster_update_call() {
-      let id2uuid_map = self.id2uuid.getMap();
-      let data = {"id2uuid": JSON.stringify(id2uuid_map)};
-      this.publish('com.cluster.heartbeat', data);
-   }
-
-   async _cluster_heartbeat_d(data) {
-      let id2uuid_map = JSON.parse(data["id2uuid"]);
-      this.id2uuid = new bidict(id2uuid_map);
+      let [ data ] = args;
+      let set_id2uuid = data["id2uuid"];
+      this.id2uuid = new bidict(set_id2uuid);
    }
 
    setCallback(t, callback) {
       this.callback[t] = callback;
    }
 
-   async recv(msg) {
+   async recv(args) {
+      /*
+      Params: msg: object
+      Return: ret: object
+      */
+      let [ msg ] = args;
       logging(`${this.id} recv: ${msg}`);
       let { msgType, data } = msg;
       if (!(msgType in this.callback)) {
@@ -84,7 +57,7 @@ export class SimpleWS {
          throw new Error("MsgType not implement");
       }
       let msg = { "msgType": msgType, "data": data };
-      let t = await this.call(`com.node${id}.call`, msg);
+      let t = await this.call(`com.node${id}.call`, [ msg ]);
       return t;
    }
 
@@ -99,7 +72,7 @@ export class SimpleWS {
          if (id == this.id) {
             continue;
          }
-         t = this.call(`com.node${id}.call`, msg);
+         t = this.call(`com.node${id}.call`, [ msg ]);
          tasks.push(t);
       }
       let ts = await Promise.all(tasks);
@@ -123,10 +96,14 @@ export class SimpleWS {
       this.id2uuid = new bidict();
       this.id2sid = new bidict();
       this.heartbeatlist = {};
-      this.uuid = uuid
-      this.id = null
-      this.callback = {}
-      this.heartbeat = {}
-      this.callback["0"] = function (x) { x }
+      this.uuid = uuid;
+      this.id = null;
+      this.callback = {};
+      this.heartbeat = {};
+      this.callback["0"] = function (x) { x };
    }
+}
+
+module.exports = {
+   SimpleWS: SimpleWS
 }
