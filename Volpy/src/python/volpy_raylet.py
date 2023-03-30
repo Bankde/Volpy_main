@@ -51,10 +51,10 @@ if __name__ == '__main__':
     # Get all declared tasks before joining
     if not config.main:
         response = loop.run_until_complete(session.send(session.getMainId(), session.API.GetAllTasks, {}))
-        all_tasks = response.taskmap
-        for task_name in all_tasks:
-            scheduler.saveTask(task_name, all_tasks[task_name])
-
+        all_tasks = response.all_tasks
+        for taskData in all_tasks:
+            task_name, serialized_task, module_list = taskData
+            scheduler.saveTask(task_name, serialized_task, module_list)
 
     # Spawn workers
     raylet_pid = os.getpid()

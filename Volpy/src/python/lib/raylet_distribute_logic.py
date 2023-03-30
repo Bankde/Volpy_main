@@ -46,12 +46,12 @@ class Worker_Connection(object):
     def getIPCPort(self) -> int:
         return self.workeripc
 
-async def initTask(worker: Worker, name: str, serialized_task: bytes):
+async def initTask(worker: Worker, name: str, serialized_task: bytes, module_list: list[str]):
     '''
     Blocking, waiting for the other side to finish initializing task
     '''
     if worker.connection.getConnectionType() == Connection.IPC:
-        return await worker.connection.ipccaller.InitTask(name, serialized_task)
+        return await worker.connection.ipccaller.InitTask(name, serialized_task, module_list)
     else:
         # There shouldn't be any initTask send to worker via this method
         # initTask should be broadcasted through rayletws instead of iterating each worker.

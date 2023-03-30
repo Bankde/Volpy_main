@@ -5,6 +5,6 @@ import public "volpy.proto";
 
 service Volpy {
   // Task
-  rpc InitTask(TaskNameAndCode) returns (Status) {}
+  rpc InitTask(TaskNameAndData) returns (Status) {}
   rpc RunTask(IdTaskArgs) returns (StatusWithData) {}
 }

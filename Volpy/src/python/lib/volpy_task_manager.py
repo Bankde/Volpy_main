@@ -34,6 +34,7 @@ class TaskManager(object, metaclass=Singleton):
     def setup(self, ipc_caller):
         self.ipc_caller = ipc_caller
         VolpyDataRef.setup(self.ipc_caller)
+        codepickle.set_config_get_import(True)
 
     def _generateRemoteFunc(self, func):
         def remote(*kwargs) -> VolpyDataRef:
@@ -50,10 +51,10 @@ class TaskManager(object, metaclass=Singleton):
         return remote
 
     def registerRemote(self, func):
-        serializedTask = self.serializeUploadTask(func)
+        serializedTask, module_list = self.serializeUploadTask(func)
         taskname = func.__name__
         loop = asyncio.get_running_loop()
-        loop.run_until_complete(self.ipc_caller.CreateTask(taskname, serializedTask))
+        loop.run_until_complete(self.ipc_caller.CreateTask(taskname, serializedTask, module_list))
         func.remote = self._generateRemoteFunc(func)
 
     def serializeData(self, args):

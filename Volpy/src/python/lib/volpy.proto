@@ -2,9 +2,10 @@ syntax = "proto3";
 
 // python -m grpc_tools.protoc -I. --python_out=vgrpc/ --pyi_out=vgrpc/ --grpc_python_out=vgrpc/ worker.proto
 
-message TaskNameAndCode {
+message TaskNameAndData {
   string name = 1;
   bytes serialized_task = 2;
+  repeated string module_list = 3;
 }
 
 message IdTaskArgs {

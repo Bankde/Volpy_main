@@ -31,11 +31,11 @@ class VolpyWS(SimpleWS):
         GetData = 22
 
     def addHandler(self):
-        # {"task_name": str, "serialized_task": bytes}
+        # {"task_name": str, "serialized_task": bytes, "module_list": [str]}
         # ret: {"status": int}
         self.setCallback(self.API.CreateTask, self.createTask)
         # {}
-        # ret: {"taskmap": dict<name, bytes>}
+        # ret: {"all_tasks": list<name, bytes, [str]>}
         self.setCallback(self.API.GetAllTasks, self.getAllTasks)
         # {"cid": int, "task_name": str, "args": bytes}
         # ret: {"status": int, "worker_id": str} 
@@ -70,16 +70,16 @@ class VolpyWS(SimpleWS):
         Receive CreateTask from raylet (either main/not) ws.
         Raylet has to broadcast the task to all workers (IPC).
         """
-        task_name, serialized_task = data["task_name"], data["serialized_task"]
+        task_name, serialized_task, module_list = data["task_name"], data["serialized_task"], data["module_list"]
         logging.info(f'Recv CreateTask: {task_name}')
-        scheduler.saveTask(task_name, serialized_task)
+        scheduler.saveTask(task_name, serialized_task, module_list)
         # Broadcast to all worker ipc
         workers = scheduler.getAllLocalWorkers()
         if config.main:
             logging.warn(f'Main raylet receive createTask from WS (ok if you attach REPL to non-main)')
         tasks = []
         for worker in workers:
-            task = Raylet_Worker_Logic.initTask(worker, task_name, serialized_task=serialized_task)
+            task = Raylet_Worker_Logic.initTask(worker, task_name, serialized_task=serialized_task, module_list=module_list)
             tasks.append(task)
         responses = await asyncio.gather(*tasks)
         msg_obj = {"status": Status.SUCCESS}
@@ -89,8 +89,12 @@ class VolpyWS(SimpleWS):
         """
         Return all of the declared tasks
         """
-        data = scheduler.getAllTasks()
-        msg_obj = {"taskmap": data}
+        all_tasks = scheduler.getAllTasks()
+        all_tasks_arr = []
+        for task in all_tasks:
+            serialized_data, module_list = all_tasks[task]
+            all_tasks_arr.append((task, serialized_data, module_list))
+        msg_obj = {"all_tasks": all_tasks_arr}
         return msg_obj
 
     async def acquireWorker(self, data):

@@ -15,7 +15,7 @@ from . import volpy_pb2 as volpy__pb2
 
 from .volpy_pb2 import *
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0cworker.proto\x12\x04node\x1a\x0bvolpy.proto2[\n\x05Volpy\x12\'\n\x08InitTask\x12\x10.TaskNameAndCode\x1a\x07.Status\"\x00\x12)\n\x07RunTask\x12\x0b.IdTaskArgs\x1a\x0f.StatusWithData\"\x00P\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0cworker.proto\x12\x04node\x1a\x0bvolpy.proto2[\n\x05Volpy\x12\'\n\x08InitTask\x12\x10.TaskNameAndData\x1a\x07.Status\"\x00\x12)\n\x07RunTask\x12\x0b.IdTaskArgs\x1a\x0f.StatusWithData\"\x00P\x00\x62\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'worker_pb2', globals())

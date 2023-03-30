@@ -42,12 +42,12 @@ class Scheduler(object, metaclass=Singleton):
         self._id2worker: Dict[int, Worker] = {}
         self.workerNum = 0
         self.rr = 0
-        self.tasks: Dict[str, bytes] = {}
+        self.tasks: Dict[str, tuple[bytes, List[str]]] = {}
 
-    def saveTask(self, taskname: str, serialized_task: bytes):
-        self.tasks[taskname] = serialized_task
+    def saveTask(self, taskname: str, serialized_task: bytes, module_list: List[str]):
+        self.tasks[taskname] = (serialized_task, module_list)
 
-    def getAllTasks(self) -> Dict[str, bytes]:
+    def getAllTasks(self) -> Dict[str, tuple[bytes, List[str]]]:
         return self.tasks
 
     def addWorker(self, connection: Worker_Connection) -> Worker:

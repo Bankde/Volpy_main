@@ -15,21 +15,17 @@ from . import volpy_pb2 as volpy__pb2
 
 from .volpy_pb2 import *
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0craylet.proto\x12\x06raylet\x1a\x0bvolpy.proto\"\x1a\n\nWorkerData\x12\x0c\n\x04port\x18\x01 \x01(\t\"j\n\x08\x41llTasks\x12.\n\x07taskmap\x18\x01 \x03(\x0b\x32\x1d.raylet.AllTasks.TaskmapEntry\x1a.\n\x0cTaskmapEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x0c:\x02\x38\x01\x32\xf9\x01\n\x05Volpy\x12+\n\nInitWorker\x12\x12.raylet.WorkerData\x1a\x07.Status\"\x00\x12)\n\nCreateTask\x12\x10.TaskNameAndCode\x1a\x07.Status\"\x00\x12/\n\nSubmitTask\x12\x0b.IdTaskArgs\x1a\x12.StatusWithDataRef\"\x00\x12)\n\x0bGetAllTasks\x12\x06.Empty\x1a\x10.raylet.AllTasks\"\x00\x12\"\n\x03Get\x12\x08.DataRef\x1a\x0f.StatusWithData\"\x00\x12\x18\n\x03Put\x12\x05.Data\x1a\x08.DataRef\"\x00P\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0craylet.proto\x12\x06raylet\x1a\x0bvolpy.proto\"\x1a\n\nWorkerData\x12\x0c\n\x04port\x18\x01 \x01(\t\"/\n\x08\x41llTasks\x12#\n\tall_tasks\x18\x01 \x03(\x0b\x32\x10.TaskNameAndData2\xf9\x01\n\x05Volpy\x12+\n\nInitWorker\x12\x12.raylet.WorkerData\x1a\x07.Status\"\x00\x12)\n\nCreateTask\x12\x10.TaskNameAndData\x1a\x07.Status\"\x00\x12/\n\nSubmitTask\x12\x0b.IdTaskArgs\x1a\x12.StatusWithDataRef\"\x00\x12)\n\x0bGetAllTasks\x12\x06.Empty\x1a\x10.raylet.AllTasks\"\x00\x12\"\n\x03Get\x12\x08.DataRef\x1a\x0f.StatusWithData\"\x00\x12\x18\n\x03Put\x12\x05.Data\x1a\x08.DataRef\"\x00P\x00\x62\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'raylet_pb2', globals())
 if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
-  _ALLTASKS_TASKMAPENTRY._options = None
-  _ALLTASKS_TASKMAPENTRY._serialized_options = b'8\001'
   _WORKERDATA._serialized_start=37
   _WORKERDATA._serialized_end=63
   _ALLTASKS._serialized_start=65
-  _ALLTASKS._serialized_end=171
-  _ALLTASKS_TASKMAPENTRY._serialized_start=125
-  _ALLTASKS_TASKMAPENTRY._serialized_end=171
-  _VOLPY._serialized_start=174
-  _VOLPY._serialized_end=423
+  _ALLTASKS._serialized_end=112
+  _VOLPY._serialized_start=115
+  _VOLPY._serialized_end=364
 # @@protoc_insertion_point(module_scope)

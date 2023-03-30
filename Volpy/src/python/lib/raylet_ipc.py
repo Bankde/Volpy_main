@@ -25,19 +25,21 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
         Raylet has to broadcast the task to all workers (IPC) and other raylets (websocket).
         """
         task_name = request.name
-        logging.info(f'Recv CreateTask: {task_name}')
         serialized_task = request.serialized_task
-        scheduler.saveTask(task_name, serialized_task)
+        module_list = [module for module in request.module_list]
+        logging.info(f'Recv CreateTask: {task_name}')
+        logging.info(f'Test: {task_name} {module_list}')
+        scheduler.saveTask(task_name, serialized_task, module_list)
         tasks = []
         # Broadcast to all raylets through ws
-        msg = {"task_name": task_name, "serialized_task": serialized_task}
+        msg = {"task_name": task_name, "serialized_task": serialized_task, "module_list": module_list}
         task = raylet_ws.broadcast(raylet_ws.API.CreateTask, msg)
         tasks.append(task)
         # Broadcast to all worker process
         # For other rayletws connection, let other nodes handle by themselves.
         workers = scheduler.getAllLocalWorkers()
         for worker in workers:
-            task = Raylet_Worker_Logic.initTask(worker, task_name, serialized_task=serialized_task)
+            task = Raylet_Worker_Logic.initTask(worker, task_name, serialized_task, module_list)
             tasks.append(task)
         responses = await asyncio.gather(*tasks)
         return raylet_pb2.Status(status=Status.SUCCESS)
@@ -94,7 +96,12 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
     
     async def GetAllTasks(self, request, context):
         all_tasks = scheduler.getAllTasks()
-        return raylet_pb2.AllTasks(taskmap=all_tasks)
+        all_tasks_arr = []
+        for task in all_tasks:
+            serialized_task, module_list = all_tasks[task]
+            taskAndData = raylet_pb2.TaskNameAndData(name=task, serialized_task=serialized_task, module_list=module_list)
+            all_tasks_arr.append(taskAndData)
+        return raylet_pb2.AllTasks(all_tasks=all_tasks_arr)
 
     async def Get(self, request, context):
         '''

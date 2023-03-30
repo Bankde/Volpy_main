@@ -2,9 +2,9 @@ import volpy_pb2 as _volpy_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from typing import ClassVar as _ClassVar, Mapping as _Mapping, Optional as _Optional
+from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Mapping, Optional as _Optional, Union as _Union
 
-from volpy_pb2 import TaskNameAndCode
+from volpy_pb2 import TaskNameAndData
 from volpy_pb2 import IdTaskArgs
 from volpy_pb2 import Status
 from volpy_pb2 import DataRef
@@ -15,17 +15,10 @@ from volpy_pb2 import Empty
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AllTasks(_message.Message):
-    __slots__ = ["taskmap"]
-    class TaskmapEntry(_message.Message):
-        __slots__ = ["key", "value"]
-        KEY_FIELD_NUMBER: _ClassVar[int]
-        VALUE_FIELD_NUMBER: _ClassVar[int]
-        key: str
-        value: bytes
-        def __init__(self, key: _Optional[str] = ..., value: _Optional[bytes] = ...) -> None: ...
-    TASKMAP_FIELD_NUMBER: _ClassVar[int]
-    taskmap: _containers.ScalarMap[str, bytes]
-    def __init__(self, taskmap: _Optional[_Mapping[str, bytes]] = ...) -> None: ...
+    __slots__ = ["all_tasks"]
+    ALL_TASKS_FIELD_NUMBER: _ClassVar[int]
+    all_tasks: _containers.RepeatedCompositeFieldContainer[_volpy_pb2.TaskNameAndData]
+    def __init__(self, all_tasks: _Optional[_Iterable[_Union[_volpy_pb2.TaskNameAndData, _Mapping]]] = ...) -> None: ...
 
 class WorkerData(_message.Message):
     __slots__ = ["port"]

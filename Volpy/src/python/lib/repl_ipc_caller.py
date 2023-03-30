@@ -24,8 +24,8 @@ class REPL_IPCCaller(object, metaclass=Singleton):
     async def waitReady(self):
         await self.channel.channel_ready()
 
-    async def CreateTask(self, name, serialized_task):
-        return await self.stub.CreateTask(raylet_pb2.TaskNameAndCode(name=name, serialized_task=serialized_task))
+    async def CreateTask(self, name, serialized_task, module_list):
+        return await self.stub.CreateTask(raylet_pb2.TaskNameAndData(name=name, serialized_task=serialized_task, module_list=module_list))
 
     async def SubmitTask(self, id, name, args):
         return await self.stub.SubmitTask(raylet_pb2.IdTaskArgs(id=id, name=name, args=args))

@@ -45,8 +45,11 @@ if __name__ == '__main__':
     volpy_task_manager.TaskManager().setup(ipc_caller)
     loop.run_until_complete(ipc_caller.InitWorker(config.workeripc)) # Tell our port to raylet
     response = loop.run_until_complete(ipc_caller.GetAllTasks())
-    all_tasks = dict(response.taskmap)
-    for task_name in all_tasks:
-        worker_executor.initTask(task_name, all_tasks[task_name])
+    all_tasks = response.all_tasks
+    for task in all_tasks:
+        task_name = task.name
+        serialized_task = task.serialized_task
+        module_list = task.module_list
+        worker_executor.initTask(task_name, serialized_task, module_list)
     logging.info("Worker initialized")
     loop.run_forever()

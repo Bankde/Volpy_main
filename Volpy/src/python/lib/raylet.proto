@@ -8,7 +8,7 @@ message WorkerData {
 }
 
 message AllTasks {
-  map<string, bytes> taskmap = 1;
+  repeated TaskNameAndData all_tasks = 1;
 }
 
 service Volpy {
@@ -16,7 +16,7 @@ service Volpy {
   rpc InitWorker(WorkerData) returns (Status) {}
 
   // Task
-  rpc CreateTask(TaskNameAndCode) returns (Status) {}
+  rpc CreateTask(TaskNameAndData) returns (Status) {}
   rpc SubmitTask(IdTaskArgs) returns (StatusWithDataRef) {}
   rpc GetAllTasks(Empty) returns (AllTasks) {}
 

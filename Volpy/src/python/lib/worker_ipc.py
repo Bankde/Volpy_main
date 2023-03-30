@@ -12,10 +12,11 @@ from .util import Status
 class TaskRunner(worker_pb2_grpc.VolpyServicer):
     async def InitTask(self, request, context):
         task_name = request.name
-        logging.info(f'Recv InitTask: {task_name}')
         serialized_task = request.serialized_task
+        module_list = request.module_list
+        logging.info(f'Recv InitTask: {task_name}')
         try:
-            worker_executor.initTask(task_name, serialized_task)
+            worker_executor.initTask(task_name, serialized_task, module_list)
         except:
             return worker_pb2.Status(status=Status.SERIALIZATION_ERROR)
         return worker_pb2.Status(status=Status.SUCCESS)
