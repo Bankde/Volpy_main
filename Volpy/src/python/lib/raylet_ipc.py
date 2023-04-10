@@ -24,11 +24,10 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
         Receive CreateTask from driver/worker.
         Raylet has to broadcast the task to all workers (IPC) and other raylets (websocket).
         """
-        task_name = request.name
+        task_name = request.task_name
         serialized_task = request.serialized_task
         module_list = [module for module in request.module_list]
         logging.info(f'Recv CreateTask: {task_name}')
-        logging.info(f'Test: {task_name} {module_list}')
         scheduler.saveTask(task_name, serialized_task, module_list)
         tasks = []
         # Broadcast to all raylets through ws
@@ -45,7 +44,7 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
         return raylet_pb2.Status(status=Status.SUCCESS)
 
     async def SubmitTask(self, request, context):
-        cid, task_name, args = request.id, request.name, request.args
+        cid, task_name, args = request.cid, request.task_name, request.args
         logging.info(f'Recv SubmitTask: {cid} {task_name}')
         if config.main:
             worker = scheduler.acquireWorker()
@@ -56,7 +55,6 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
             worker_id = response.worker_id
             worker = scheduler.getWorkerById(worker_id)
         if worker == None:
-            logging.info(f'{len(scheduler._workerList)} {scheduler.rr}')
             logging.info(f'All worker busy: {cid}')
             return raylet_pb2.StatusWithDataRef(status=Status.WORKER_BUSY, dataref="")
 
@@ -97,9 +95,9 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
     async def GetAllTasks(self, request, context):
         all_tasks = scheduler.getAllTasks()
         all_tasks_arr = []
-        for task in all_tasks:
-            serialized_task, module_list = all_tasks[task]
-            taskAndData = raylet_pb2.TaskNameAndData(name=task, serialized_task=serialized_task, module_list=module_list)
+        for task_name in all_tasks:
+            serialized_task, module_list = all_tasks[task_name]
+            taskAndData = raylet_pb2.TaskNameAndData(task_name=task_name, serialized_task=serialized_task, module_list=module_list)
             all_tasks_arr.append(taskAndData)
         return raylet_pb2.AllTasks(all_tasks=all_tasks_arr)
 
@@ -113,11 +111,12 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
             response = await fut
         status, val = datastore.get(ref)
         if status == Status.DATA_ON_OTHER:
+            # Call WS to get data from other raylet then save it locally
             rayletid = val
             msg = {"dataref": ref}
             response = await raylet_ws.send(rayletid, raylet_ws.API.GetData, msg)
             status, val = response.status, response.serialized_data
-            # Call WS to get data from other raylet then save it locally
+            datastore.saveVal(ref, val, status=status)
         return raylet_pb2.StatusWithData(status=status, serialized_data=val)
 
     async def Put(self, request, context):

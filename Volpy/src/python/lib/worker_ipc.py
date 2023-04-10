@@ -11,7 +11,7 @@ from .util import Status
 
 class TaskRunner(worker_pb2_grpc.VolpyServicer):
     async def InitTask(self, request, context):
-        task_name = request.name
+        task_name = request.task_name
         serialized_task = request.serialized_task
         module_list = request.module_list
         logging.info(f'Recv InitTask: {task_name}')
@@ -22,8 +22,8 @@ class TaskRunner(worker_pb2_grpc.VolpyServicer):
         return worker_pb2.Status(status=Status.SUCCESS)
 
     async def RunTask(self, request, context):
-        cid = request.id
-        task_name = request.name
+        cid = request.cid
+        task_name = request.task_name
         logging.info(f'Recv RunTask: {cid} {task_name}')
         args = request.args
         try:

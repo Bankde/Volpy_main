@@ -28,10 +28,10 @@ class Raylet_IPCCaller(object):
     async def waitReady(self, idx):
         await self.channel.channel_ready()
 
-    async def InitTask(self, name, serialized_task, module_list):
+    async def InitTask(self, task_name, serialized_task, module_list):
         await self.channel.channel_ready()
-        return await self.stub.InitTask(worker_pb2.TaskNameAndData(name=name, serialized_task=serialized_task, module_list=module_list))
+        return await self.stub.InitTask(worker_pb2.TaskNameAndData(task_name=task_name, serialized_task=serialized_task, module_list=module_list))
 
-    async def RunTask(self, cid, name, args):
+    async def RunTask(self, cid, task_name, args):
         await self.channel.channel_ready()
-        return await self.stub.RunTask(worker_pb2.IdTaskArgs(id=cid, name=name, args=args))
+        return await self.stub.RunTask(worker_pb2.IdTaskArgs(cid=cid, task_name=task_name, args=args))

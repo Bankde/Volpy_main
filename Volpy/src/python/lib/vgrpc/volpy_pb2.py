@@ -13,7 +13,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0bvolpy.proto\"M\n\x0fTaskNameAndData\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x17\n\x0fserialized_task\x18\x02 \x01(\x0c\x12\x13\n\x0bmodule_list\x18\x03 \x03(\t\"4\n\nIdTaskArgs\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x03 \x01(\x0c\"\x18\n\x06Status\x12\x0e\n\x06status\x18\x01 \x01(\x05\"\x1a\n\x07\x44\x61taRef\x12\x0f\n\x07\x64\x61taref\x18\x01 \x01(\t\"4\n\x11StatusWithDataRef\x12\x0e\n\x06status\x18\x01 \x01(\x05\x12\x0f\n\x07\x64\x61taref\x18\x02 \x01(\t\"\x1f\n\x04\x44\x61ta\x12\x17\n\x0fserialized_data\x18\x01 \x01(\x0c\"9\n\x0eStatusWithData\x12\x0e\n\x06status\x18\x01 \x01(\x05\x12\x17\n\x0fserialized_data\x18\x02 \x01(\x0c\"\x07\n\x05\x45mptyb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0bvolpy.proto\"R\n\x0fTaskNameAndData\x12\x11\n\ttask_name\x18\x01 \x01(\t\x12\x17\n\x0fserialized_task\x18\x02 \x01(\x0c\x12\x13\n\x0bmodule_list\x18\x03 \x03(\t\":\n\nIdTaskArgs\x12\x0b\n\x03\x63id\x18\x01 \x01(\x05\x12\x11\n\ttask_name\x18\x02 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x03 \x01(\x0c\"\x18\n\x06Status\x12\x0e\n\x06status\x18\x01 \x01(\x05\"\x1a\n\x07\x44\x61taRef\x12\x0f\n\x07\x64\x61taref\x18\x01 \x01(\t\"4\n\x11StatusWithDataRef\x12\x0e\n\x06status\x18\x01 \x01(\x05\x12\x0f\n\x07\x64\x61taref\x18\x02 \x01(\t\"\x1f\n\x04\x44\x61ta\x12\x17\n\x0fserialized_data\x18\x01 \x01(\x0c\"9\n\x0eStatusWithData\x12\x0e\n\x06status\x18\x01 \x01(\x05\x12\x17\n\x0fserialized_data\x18\x02 \x01(\x0c\"\x07\n\x05\x45mptyb\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'volpy_pb2', globals())
@@ -21,19 +21,19 @@ if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
   _TASKNAMEANDDATA._serialized_start=15
-  _TASKNAMEANDDATA._serialized_end=92
-  _IDTASKARGS._serialized_start=94
-  _IDTASKARGS._serialized_end=146
-  _STATUS._serialized_start=148
-  _STATUS._serialized_end=172
-  _DATAREF._serialized_start=174
-  _DATAREF._serialized_end=200
-  _STATUSWITHDATAREF._serialized_start=202
-  _STATUSWITHDATAREF._serialized_end=254
-  _DATA._serialized_start=256
-  _DATA._serialized_end=287
-  _STATUSWITHDATA._serialized_start=289
-  _STATUSWITHDATA._serialized_end=346
-  _EMPTY._serialized_start=348
-  _EMPTY._serialized_end=355
+  _TASKNAMEANDDATA._serialized_end=97
+  _IDTASKARGS._serialized_start=99
+  _IDTASKARGS._serialized_end=157
+  _STATUS._serialized_start=159
+  _STATUS._serialized_end=183
+  _DATAREF._serialized_start=185
+  _DATAREF._serialized_end=211
+  _STATUSWITHDATAREF._serialized_start=213
+  _STATUSWITHDATAREF._serialized_end=265
+  _DATA._serialized_start=267
+  _DATA._serialized_end=298
+  _STATUSWITHDATA._serialized_start=300
+  _STATUSWITHDATA._serialized_end=357
+  _EMPTY._serialized_start=359
+  _EMPTY._serialized_end=366
 # @@protoc_insertion_point(module_scope)

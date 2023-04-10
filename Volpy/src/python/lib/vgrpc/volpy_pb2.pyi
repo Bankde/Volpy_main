@@ -22,14 +22,14 @@ class Empty(_message.Message):
     def __init__(self) -> None: ...
 
 class IdTaskArgs(_message.Message):
-    __slots__ = ["args", "id", "name"]
+    __slots__ = ["args", "cid", "task_name"]
     ARGS_FIELD_NUMBER: _ClassVar[int]
-    ID_FIELD_NUMBER: _ClassVar[int]
-    NAME_FIELD_NUMBER: _ClassVar[int]
+    CID_FIELD_NUMBER: _ClassVar[int]
+    TASK_NAME_FIELD_NUMBER: _ClassVar[int]
     args: bytes
-    id: int
-    name: str
-    def __init__(self, id: _Optional[int] = ..., name: _Optional[str] = ..., args: _Optional[bytes] = ...) -> None: ...
+    cid: int
+    task_name: str
+    def __init__(self, cid: _Optional[int] = ..., task_name: _Optional[str] = ..., args: _Optional[bytes] = ...) -> None: ...
 
 class Status(_message.Message):
     __slots__ = ["status"]
@@ -54,11 +54,11 @@ class StatusWithDataRef(_message.Message):
     def __init__(self, status: _Optional[int] = ..., dataref: _Optional[str] = ...) -> None: ...
 
 class TaskNameAndData(_message.Message):
-    __slots__ = ["module_list", "name", "serialized_task"]
+    __slots__ = ["module_list", "serialized_task", "task_name"]
     MODULE_LIST_FIELD_NUMBER: _ClassVar[int]
-    NAME_FIELD_NUMBER: _ClassVar[int]
     SERIALIZED_TASK_FIELD_NUMBER: _ClassVar[int]
+    TASK_NAME_FIELD_NUMBER: _ClassVar[int]
     module_list: _containers.RepeatedScalarFieldContainer[str]
-    name: str
     serialized_task: bytes
-    def __init__(self, name: _Optional[str] = ..., serialized_task: _Optional[bytes] = ..., module_list: _Optional[_Iterable[str]] = ...) -> None: ...
+    task_name: str
+    def __init__(self, task_name: _Optional[str] = ..., serialized_task: _Optional[bytes] = ..., module_list: _Optional[_Iterable[str]] = ...) -> None: ...

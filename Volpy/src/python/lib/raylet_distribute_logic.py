@@ -14,6 +14,7 @@ class Connection(Enum):
     NONE = 0
     IPC = 1
     WS = 2
+    THREAD = 3
 
 raylet_ws: VolpyWS = None
 IPCCaller: Raylet_IPCCaller = None
@@ -32,10 +33,12 @@ class Worker_Connection(object):
             self.workeripc = workeripc
             self.ipccaller = IPCCaller()
             self.ipccaller.connect(f'localhost:{workeripc}')
-        else:
+        elif rayletid:
             self.connectionType = Connection.WS
             # No need for self.rayletws, use the singleton instead.
             self.rayletid = rayletid
+        else:
+            assert(False)
         
     def getConnectionType(self) -> Connection:
         return self.connectionType
@@ -46,25 +49,25 @@ class Worker_Connection(object):
     def getIPCPort(self) -> int:
         return self.workeripc
 
-async def initTask(worker: Worker, name: str, serialized_task: bytes, module_list: list[str]):
+async def initTask(worker: Worker, task_name: str, serialized_task: bytes, module_list: list[str]):
     '''
     Blocking, waiting for the other side to finish initializing task
     '''
     if worker.connection.getConnectionType() == Connection.IPC:
-        return await worker.connection.ipccaller.InitTask(name, serialized_task, module_list)
+        return await worker.connection.ipccaller.InitTask(task_name, serialized_task, module_list)
     else:
         # There shouldn't be any initTask send to worker via this method
         # initTask should be broadcasted through rayletws instead of iterating each worker.
         raise
 
-async def runTaskLocal(worker: Worker, cid: str, ref: str, name: str, args: bytes):
+async def runTaskLocal(worker: Worker, cid: str, ref: str, task_name: str, args: bytes):
     '''
     Run the task and do all routines when the task is finished.
     1. Save value into datastore
     2. Call FreeWorker to main raylet
     '''
     assert(worker.connection.getConnectionType() == Connection.IPC)
-    response = await worker.connection.ipccaller.RunTask(cid, name, args)
+    response = await worker.connection.ipccaller.RunTask(cid, task_name, args)
     msg = {"cid": cid, "worker_id": worker.idx}
     datastore.saveVal(ref, val=response.serialized_data, status=response.status)
     if config.main:
@@ -75,12 +78,12 @@ async def runTaskLocal(worker: Worker, cid: str, ref: str, name: str, args: byte
     logging.info(f"Task done: {cid}")
     return response
 
-async def runTaskRemote(worker: Worker, cid: str, name: str, args: bytes):
+async def runTaskRemote(worker: Worker, cid: str, task_name: str, args: bytes):
     '''
     UNLIKE runTaskLocal, we call the remote then we wait for the response status
     to ensure that the task is started, dataref is saved and broadcasted.
     '''
     assert(worker.connection.getConnectionType() == Connection.WS)
-    msg = {"cid": cid, "worker_id": worker.idx, "task_name": name, "args": args}
+    msg = {"cid": cid, "worker_id": worker.idx, "task_name": task_name, "args": args}
     response = await raylet_ws.send(worker.connection.rayletid, raylet_ws.API.WorkerRun, msg)
     return response

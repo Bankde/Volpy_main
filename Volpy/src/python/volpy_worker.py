@@ -47,7 +47,7 @@ if __name__ == '__main__':
     response = loop.run_until_complete(ipc_caller.GetAllTasks())
     all_tasks = response.all_tasks
     for task in all_tasks:
-        task_name = task.name
+        task_name = task.task_name
         serialized_task = task.serialized_task
         module_list = task.module_list
         worker_executor.initTask(task_name, serialized_task, module_list)
