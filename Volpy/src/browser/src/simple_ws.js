@@ -42,7 +42,7 @@ class SimpleWS {
       Return: ret: object
       */
       let [ msg ] = args;
-      logging(`${this.id} recv: ${msg}`);
+      // logging(`${this.id} recv: ${msg}`);
       let { msgType, data } = msg;
       if (!(msgType in this.callback)) {
          throw new Error("MsgType not implement");
@@ -62,7 +62,7 @@ class SimpleWS {
    }
 
    async broadcast(msgType, data) {
-      logging(`${this.id} broadcast: ${data}`);
+      // logging(`${this.id} broadcast: ${data}`);
       if (!(msgType in this.callback)) {
          throw new Error("MsgType not implemented");
       }

@@ -33,6 +33,10 @@ function UUIDGeneratorBrowser() {
         );
 }
 
+function generateDataRef() {
+    return UUIDGeneratorBrowser();
+}
+
 class Status {
   static SUCCESS = 0;
 
@@ -49,5 +53,6 @@ module.exports = {
     logging: logging,
     bidict: bidict,
     UUIDGeneratorBrowser: UUIDGeneratorBrowser,
+    generateDataRef: generateDataRef,
     Status: Status
 }

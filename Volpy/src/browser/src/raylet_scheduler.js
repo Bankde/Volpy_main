@@ -30,7 +30,7 @@ class Worker {
     }
   }
 
-  class Scheduler {
+class Scheduler {
     constructor() {
         this._workerList = [];
         this._id2worker = {};
@@ -79,7 +79,7 @@ class Worker {
     }
   
     getAllLocalWorkers() {
-        return this._workerList.filter(worker => worker.getConnectionType() === Connection.IPC);
+        return this._workerList.filter(worker => worker.getConnectionType() === Connection.THREAD);
     }
   
     acquireWorker() {
@@ -172,3 +172,9 @@ class Datastore {
     }
 }
   
+
+module.exports = {
+    Worker,
+    Scheduler,
+    Datastore
+}

@@ -4,6 +4,12 @@ const { Status, logging } = require('./util.js');
 class VolpyWS extends SimpleWS {
     constructor(config) {
         super(config)
+        this.API = VolpyWS.API;
+    }
+
+    setup(scheduler, datastore) {
+        this.scheduler = scheduler;
+        this.datastore = datastore;
     }
 
     static API = {
@@ -65,7 +71,7 @@ class VolpyWS extends SimpleWS {
 
     async saveDataRef(data) {
         let { dataref, rayletid } = data;
-        datastore.putLoc(dataref, rayletid);
+        this.datastore.putLoc(dataref, rayletid);
         let msg_obj = {"status": Status.SUCCESS};
         return msg_obj;
     }
@@ -73,12 +79,12 @@ class VolpyWS extends SimpleWS {
     async getData(data) {
         let { dataref } = data;
         // unlike IPC case, when we get ws request, it should guarantee that the data is here.
-        let fut = datastore.getFuture(ref);
+        let fut = this.datastore.getFuture(dataref);
         if (fut != None) {
             response = await fut;
-            datastore.saveVal(ref, response.serialized_data, response.status);
+            this.datastore.saveVal(dataref, response.serialized_data, response.status);
         }
-        let [ status, val ] = datastore.get(ref);
+        let [ status, val ] = this.datastore.get(dataref);
         let msg_obj = {"status": status, "serialized_data": val}
         return msg_obj
     }
