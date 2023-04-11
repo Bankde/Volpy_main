@@ -1,5 +1,5 @@
-const { SimpleWS } = require('./simple_ws.js');
-const { Status, logging } = require('./util.js');
+import { SimpleWS } from './simple_ws.js';
+import { Status, logging } from './util.js';
 
 class VolpyWS extends SimpleWS {
     constructor(config) {
@@ -90,15 +90,10 @@ class VolpyWS extends SimpleWS {
     }
 }
 
-function VolpyWSCreateSession(config) {
+export function VolpyWSCreateSession(config) {
     let session = new VolpyWS(config);
     session.init(config.uuid);
     session.addHandler();
     session.start();
     return session;
-}
-
-module.exports = {
-    VolpyWS: VolpyWS,
-    VolpyWSCreateSession: VolpyWSCreateSession
 }

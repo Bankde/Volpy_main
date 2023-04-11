@@ -1,7 +1,7 @@
-const { VolpyWSCreateSession } = require('./raylet_ws');
-const { UUIDGeneratorBrowser } = require('./util');
+import { VolpyWSCreateSession } from './raylet_ws';
+import { UUIDGeneratorBrowser } from './util';
 import { VolpyWorker } from './worker_mgr.js';
-const { Scheduler, Datastore } = require('./raylet_scheduler');
+import { Scheduler, Datastore } from './raylet_scheduler';
 
 document.addEventListener('DOMContentLoaded', function() {
     // Update recommend workerNum from hardware

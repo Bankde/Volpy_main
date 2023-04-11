@@ -1,4 +1,4 @@
-const Connection = {
+export const Connection = {
     NONE: 0,
     IPC: 1,
     WS: 2,
@@ -9,12 +9,12 @@ let raylet_ws = null;
 let IPCCaller = null;
 let datastore = null;
 
-function setup(l_raylet_ws, l_datastore) {
+export function setup(l_raylet_ws, l_datastore) {
     raylet_ws = l_raylet_ws;
     datastore = l_datastore;
 }
 
-class Worker_Connection {
+export class Worker_Connection {
     constructor(worker = null, rayletid = null) {
         if (worker) {
             this.connectionType = Connection.THREAD;
@@ -45,7 +45,7 @@ class Worker_Connection {
     }
 }
 
-async function initTask(worker, task_name, serialized_task, module_list) {
+export async function initTask(worker, task_name, serialized_task, module_list) {
     /*
     * Blocking, waiting for the other side to finish initializing task
     */
@@ -58,7 +58,7 @@ async function initTask(worker, task_name, serialized_task, module_list) {
     }
 }
 
-async function runTaskLocal(worker, cid, ref, task_name, args) {
+export async function runTaskLocal(worker, cid, ref, task_name, args) {
     /*
      * Run the task and do all routines when the task is finished.
      * 1. Save value into datastore
@@ -78,7 +78,7 @@ async function runTaskLocal(worker, cid, ref, task_name, args) {
     return response;
 }
   
-async function runTaskRemote(worker, cid, task_name, args) {
+export async function runTaskRemote(worker, cid, task_name, args) {
     /*
      * UNLIKE runTaskLocal, we call the remote then we wait for the response status
      * to ensure that the task is started, dataref is saved and broadcasted.
@@ -87,13 +87,4 @@ async function runTaskRemote(worker, cid, task_name, args) {
     const msg = { "cid": cid, "worker_id": worker.idx, "task_name": task_name, "args": args };
     const response = await raylet_ws.send(worker.connection.rayletid, raylet_ws.API.WorkerRun, msg);
     return response;
-}
-
-module.exports = {
-    Connection,
-    Worker_Connection,
-    setup,
-    initTask,
-    runTaskLocal,
-    runTaskRemote
 }

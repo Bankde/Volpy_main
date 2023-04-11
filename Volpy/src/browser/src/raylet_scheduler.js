@@ -1,6 +1,6 @@
-const { logging } = require('./util.js');
+import { logging } from './util.js';
 
-class Worker {
+export class Worker {
     constructor(idx, connection) {
         this.idx = idx;
         this.locked = false;
@@ -30,7 +30,7 @@ class Worker {
     }
   }
 
-class Scheduler {
+export class Scheduler {
     constructor() {
         this._workerList = [];
         this._id2worker = {};
@@ -121,7 +121,7 @@ class VolpyData {
     }
   }
 
-class Datastore {
+export class Datastore {
     constructor() {
         this.dict = {};
     }
@@ -170,11 +170,4 @@ class Datastore {
         obj.status = status;
         obj.done = true;
     }
-}
-  
-
-module.exports = {
-    Worker,
-    Scheduler,
-    Datastore
 }

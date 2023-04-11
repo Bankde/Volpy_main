@@ -1,7 +1,7 @@
-const autobahn = require('autobahn-browser');
-const { bidict, logging } = require('./util.js');
+import autobahn from 'autobahn-browser';
+import { bidict, logging } from './util.js';
 
-class SimpleWS {
+export class SimpleWS {
    constructor(config) {
       this.connection = new autobahn.Connection({url: config["url"], realm: config["realm"]});
       this.connection.onopen = (session) => {
@@ -102,8 +102,4 @@ class SimpleWS {
       this.heartbeat = {};
       this.callback["0"] = function (x) { x };
    }
-}
-
-module.exports = {
-   SimpleWS: SimpleWS
 }
