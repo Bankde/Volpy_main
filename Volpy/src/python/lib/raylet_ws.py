@@ -2,9 +2,7 @@ from .simple_ws import SimpleWS
 from .config import config
 from autobahn.wamp.types import ComponentConfig
 from autobahn.asyncio.wamp import ApplicationRunner
-from .raylet_scheduler import scheduler, datastore
-from .raylet_distribute_logic import Worker_Connection, Connection
-from . import raylet_distribute_logic as Raylet_Worker_Logic
+from .raylet_scheduler import scheduler, datastore, Connection, SharedLogic
 
 from .util import Status, generateDataRef
 
@@ -79,7 +77,7 @@ class VolpyWS(SimpleWS):
             logging.warn(f'Main raylet receive createTask from WS (ok if you attach REPL to non-main)')
         tasks = []
         for worker in workers:
-            task = Raylet_Worker_Logic.initTask(worker, task_name, serialized_task=serialized_task, module_list=module_list)
+            task = SharedLogic.initTask(worker, task_name, serialized_task=serialized_task, module_list=module_list)
             tasks.append(task)
         responses = await asyncio.gather(*tasks)
         msg_obj = {"status": Status.SUCCESS}
@@ -123,7 +121,7 @@ class VolpyWS(SimpleWS):
         # There shouldn't be a workerRun call that will redirect us back to ws
         assert(worker.getConnectionType() == Connection.IPC)
         ref = generateDataRef()
-        task = Raylet_Worker_Logic.runTaskLocal(worker, cid, ref, task_name, args)
+        task = SharedLogic.runTaskLocal(session, worker, cid, ref, task_name, args)
         future = asyncio.ensure_future(task)
         datastore.putFuture(ref, future)
         # Broadcast to all raylet that we own the data
@@ -135,8 +133,7 @@ class VolpyWS(SimpleWS):
     async def initWorker(self, data):
         rayletid = data["rayletid"]
         # Receive workerInit from ws. Save it and do not redirect it to ws
-        wcon = Worker_Connection(rayletid=rayletid)
-        worker = scheduler.addWorker(connection=wcon)
+        worker = scheduler.addWorker(connection=rayletid, ConnectionType=Connection.WS)
         # No need to distribute task, as local raylet will do it in ipc.
         logging.info(f'Worker connect (main,ws): {worker.getId()} rayletid {rayletid}')
         msg_obj = {"status": Status.SUCCESS, "worker_id": worker.getId()}

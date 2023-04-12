@@ -3,19 +3,19 @@ from .vgrpc import worker_pb2_grpc, worker_pb2
 import asyncio
 from grpc import aio 
 from .config import config
-from .raylet_scheduler import scheduler, datastore
-from .raylet_distribute_logic import Worker_Connection, Connection
-from . import raylet_distribute_logic as Raylet_Worker_Logic
-from .raylet_ws import VolpyWS
+from .raylet_scheduler import scheduler, datastore, Connection, SharedLogic
+from .raylet_ipc_caller import Raylet_IPCCaller
+import typing
+if typing.TYPE_CHECKING:
+    from .raylet_ws import VolpyWS
 
 from .util import Status, generateDataRef
-
 import logging
-import uuid
 
-raylet_ws: VolpyWS = None
+raylet_ws: 'VolpyWS' = None
+
 def setup(l_raylet_ws):
-    global raylet_ws
+    global raylet_ws, IPCCaller
     raylet_ws = l_raylet_ws
 
 class TaskRunner(raylet_pb2_grpc.VolpyServicer):
@@ -38,7 +38,7 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
         # For other rayletws connection, let other nodes handle by themselves.
         workers = scheduler.getAllLocalWorkers()
         for worker in workers:
-            task = Raylet_Worker_Logic.initTask(worker, task_name, serialized_task, module_list)
+            task = SharedLogic.initTask(worker, task_name, serialized_task, module_list)
             tasks.append(task)
         responses = await asyncio.gather(*tasks)
         return raylet_pb2.Status(status=Status.SUCCESS)
@@ -61,14 +61,14 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
         logging.info(f'Worker acquire: {cid} {worker.getId()}')
         if worker.getConnectionType() == Connection.IPC:
             ref = generateDataRef()
-            task = Raylet_Worker_Logic.runTaskLocal(worker, cid, ref, task_name, args)
+            task = SharedLogic.runTaskLocal(raylet_ws, worker, cid, ref, task_name, args)
             future = asyncio.ensure_future(task)
             datastore.putFuture(ref, future)
             # Broadcast to all raylet that we own the data
             msg = {"dataref": ref, "rayletid": raylet_ws.getId()}
             response = await raylet_ws.broadcast(raylet_ws.API.SaveDataRef, msg)
         else:
-            response = await Raylet_Worker_Logic.runTaskRemote(worker, cid, task_name, args)
+            response = await SharedLogic.runTaskRemote(raylet_ws, worker, cid, task_name, args)
             status, ref = response.status, response.dataref
         logging.info(f'Generate ref: {cid} {ref}')
         return raylet_pb2.StatusWithDataRef(status=Status.SUCCESS, dataref=ref)
@@ -78,8 +78,9 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
         # If this is not main raylet, then also inform main raylet through ws
         workeripc = request.port
         if config.main:
-            wcon = Worker_Connection(workeripc=workeripc)
-            worker = scheduler.addWorker(connection=wcon)
+            ipc_caller = Raylet_IPCCaller()
+            ipc_caller.connect(f'localhost:{workeripc}')
+            worker = scheduler.addWorker(connection=ipc_caller, connectionType=Connection.IPC)
             logging.info(f'Worker connected (main,ipc): {worker.getId()} ipc {workeripc}')
         else:
             msg = {"rayletid": raylet_ws.getId()}
@@ -87,8 +88,9 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
             status, new_worker_id = response.status, response.worker_id
             # We use the id designated from main, however the worker is connected to our local as ipc
             # So we still set ipc here; the rayletws will only be set in main raylet.
-            wcon = Worker_Connection(workeripc=workeripc)
-            worker = scheduler.addWorkerWithId(new_worker_id, connection=wcon)
+            ipc_caller = Raylet_IPCCaller()
+            ipc_caller.connect(f'localhost:{workeripc}')
+            worker = scheduler.addWorkerWithId(new_worker_id, connection=ipc_caller, connectionType=Connection.IPC)
             logging.info(f'Worker connected (side,ipc): {worker.getId()} ipc {workeripc}')
         return raylet_pb2.Status(status=Status.SUCCESS)
     
