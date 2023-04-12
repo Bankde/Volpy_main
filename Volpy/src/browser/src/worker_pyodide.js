@@ -1,5 +1,5 @@
 import { caller, expose } from 'postmsg-rpc';
-import { logging } from './util';
+import { logging, Status } from './util';
 
 // Don't worry about race condition during the initial script runs.
 // https://html.spec.whatwg.org/multipage/workers.html#worker-processing-model
@@ -25,7 +25,9 @@ expose('InitTask', (data) => {
 expose('RunTask', (data) => {
     let { cid, task_name, args } = data;
     logging(`Recv RunTask: ${cid} ${task_name}`);
-    return 0;
+    // TODO: MOCK
+    let msg = { "status": Status.SUCCESS, "serialized_data": "\x80\x04K\x00."};
+    return msg;
 }, opts);
 
 const createTaskStub = caller('CreateTask', opts);

@@ -5,6 +5,7 @@ export class SimpleWS {
    constructor(config) {
       this.connection = new autobahn.Connection({url: config["url"], realm: config["realm"]});
       this.connection.onopen = (session) => {
+         this.session = session;
          this.onJoin(session);
       };
    }
@@ -16,9 +17,13 @@ export class SimpleWS {
       this._session_id = session._id;
       logging(`Setup UUID: ${this.uuid}`);
 
-      await session.subscribe('com.cluster.heartbeat', (args) => {this._cluster_heartbeat_d(args)});
+      await session.subscribe('com.cluster.heartbeat', async (args) => {
+         this._cluster_heartbeat_d(args)
+      });
       this.id = await session.call('com.node.register', [ this._session_id, this.uuid ]);
-      await session.register(`com.node${this.id}.call`, (args) => {this.recv(args);});
+      await session.register(`com.node${this.id}.call`, async (args) => {
+         return await this.recv(args);
+      });
       logging(`Setup Node finish: sid_${this._session_id} id_${this.id}`);
    }
 
@@ -53,26 +58,20 @@ export class SimpleWS {
    }
 
    async send(id, msgType, data) {
-      if (!(msgType in this.callback)) {
-         throw new Error("MsgType not implement");
-      }
       let msg = { "msgType": msgType, "data": data };
-      let t = await this.call(`com.node${id}.call`, [ msg ]);
+      let t = await this.session.call(`com.node${id}.call`, [ msg ]);
       return t;
    }
 
    async broadcast(msgType, data) {
       // logging(`${this.id} broadcast: ${data}`);
-      if (!(msgType in this.callback)) {
-         throw new Error("MsgType not implemented");
-      }
       let msg = { "msgType": msgType, "data": data };
       let tasks = [];
       for (const id in this.id2uuid.getMap()) {
          if (id == this.id) {
             continue;
          }
-         t = this.call(`com.node${id}.call`, [ msg ]);
+         let t = this.session.call(`com.node${id}.call`, [ msg ]);
          tasks.push(t);
       }
       let ts = await Promise.all(tasks);

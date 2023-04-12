@@ -1,5 +1,5 @@
 import { VolpyWSCreateSession } from './raylet_ws';
-import { UUIDGeneratorBrowser } from './util';
+import { UUIDGeneratorBrowser, logging } from './util';
 import { VolpyWorker } from './worker_mgr.js';
 import { Scheduler, Datastore } from './raylet_scheduler';
 
@@ -13,26 +13,30 @@ document.addEventListener('DOMContentLoaded', function() {
     button.addEventListener('click', runNode);
 });
 
-function runNode() {
+async function runNode() {
     let wssAddr = document.getElementById("wssAddr").value;
     let realm = document.getElementById("wssRealm").value;
     let workerNum = document.getElementById("workerNum").value;
-    console.log(wssAddr + " " + workerNum);
+    logging(wssAddr + " " + workerNum);
 
     let config = {
         url: wssAddr,
         realm: realm
     }
     config.uuid = UUIDGeneratorBrowser();
-    console.log("Current NodeID: " + config.uuid);
+    logging("Current NodeID: " + config.uuid);
 
     const session = VolpyWSCreateSession(config);
     const scheduler = new Scheduler();
     const datastore = new Datastore();
+    session.setup(scheduler, datastore);
+
+    // Waiting til raylet_ws connected, may improve later.
+    await new Promise(r => setTimeout(r, 1000));
 
     let workers = [];
     for (let i=0; i<workerNum; i++) {
-        let worker = new VolpyWorker();
+        let worker = new VolpyWorker(session, scheduler, datastore);
         workers.push(worker);
     }
 }

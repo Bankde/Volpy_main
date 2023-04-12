@@ -134,7 +134,7 @@ class VolpyWS(SimpleWS):
     async def initWorker(self, data):
         rayletid = data["rayletid"]
         # Receive workerInit from ws. Save it and do not redirect it to ws
-        worker = scheduler.addWorker(connection=rayletid, ConnectionType=Connection.WS)
+        worker = scheduler.addWorker(connection=rayletid, connectionType=Connection.WS)
         # No need to distribute task, as local raylet will do it in ipc.
         logging.info(f'Worker connect (main,ws): {worker.getId()} rayletid {rayletid}')
         msg_obj = {"status": Status.SUCCESS, "worker_id": worker.getId()}

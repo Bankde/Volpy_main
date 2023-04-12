@@ -1,10 +1,23 @@
 import { logging } from './util.js';
 
+export const Connection = {
+    NONE: 0,
+    IPC: 1,
+    WS: 2,
+    THREAD: 3,
+};
+
 export class Worker {
-    constructor(idx, connection) {
+    constructor(idx, connection, connectionType) {
+        /*
+        Connection should be one of the following:
+        - ConnectionType:WS - rayletid
+        - ConnectionType:Thread - web worker instance
+        */
         this.idx = idx;
         this.locked = false;
         this.connection = connection;
+        this.connectionType = connectionType;
     }
   
     lock() {
@@ -26,7 +39,7 @@ export class Worker {
     }
   
     getConnectionType() {
-        return this.connection.getConnectionType();
+        return this.connectionType;
     }
   }
 
@@ -39,35 +52,35 @@ export class Scheduler {
         this.tasks = {};
     }
   
-    saveTask(taskname, serialized_task) {
-        this.tasks[taskname] = serialized_task;
+    saveTask(task_name, serialized_task, module_list) {
+        this.tasks[task_name] = [serialized_task, module_list];
     }
   
     getAllTasks() {
         return this.tasks;
     }
   
-    addWorker(connection) {
+    addWorker(connection, connectionType) {
         /*
         Add and connect worker
         Either IPC (grpc) or WebsocketId (in case of different node)
         */
         const worker_id = this.workerNum.toString();
-        const worker = new Worker(worker_id, connection);
+        const worker = new Worker(worker_id, connection, connectionType);
         this._workerList.push(worker);
         this.workerNum += 1;
         this._id2worker[worker_id] = worker;
         return worker;
     }
   
-    addWorkerWithId(worker_id, connection) {
+    addWorkerWithId(worker_id, connection, connectionType) {
         /*
         Add and connect worker with Id
         Use this API when Id is assigned from the main raylet.
         Either IPC (grpc) or WebsocketId (in case of different node)
         */
         worker_id = worker_id.toString();
-        const worker = new Worker(worker_id, connection);
+        const worker = new Worker(worker_id, connection, connectionType);
         this.workerNum += 1;
         this._workerList.push(worker);
         this._id2worker[worker_id] = worker;
@@ -138,17 +151,17 @@ export class Datastore {
     }
   
     put(ref, val) {
-        const obj = new this.VolpyData(ref, null, val);
+        const obj = new VolpyData(ref, null, val);
         this.dict[ref] = obj;
     }
   
     putLoc(ref, loc) {
-        const obj = new this.VolpyData(ref, loc);
+        const obj = new VolpyData(ref, loc);
         this.dict[ref] = obj;
     }
   
     putFuture(ref, fut) {
-        const obj = new this.VolpyData(ref, null, null, fut);
+        const obj = new VolpyData(ref, null, null, fut);
         this.dict[ref] = obj;
     }
   
@@ -170,4 +183,52 @@ export class Datastore {
         obj.status = status;
         obj.done = true;
     }
+}
+
+async function initTask(worker, task_name, serialized_task, module_list) {
+    /*
+    * Blocking, waiting for the other side to finish initializing task
+    */
+    if (worker.getConnectionType() === Connection.THREAD) {
+        return await worker.connection.initTask(task_name, serialized_task, module_list);
+    } else {
+        // There shouldn't be any initTask send to worker via this method
+        // initTask should be broadcasted through rayletws instead of iterating each worker.
+        throw new Error('initTask should be broadcasted through rayletws');
+    }
+}
+
+async function runTaskLocal(raylet_ws, datastore, worker, cid, ref, task_name, args) {
+    /*
+     * Run the task and do all routines when the task is finished.
+     * 1. Save value into datastore
+     * 2. Call FreeWorker to main raylet
+     */
+    if (worker.getConnectionType() != Connection.THREAD) {
+        throw new Error(`Incorrect connectionType: ${worker.getConnectionType()}`);
+    }
+    const response = await worker.connection.runTask(cid, task_name, args);
+    const msg = { "cid": cid, "worker_id": worker.idx };
+    datastore.saveVal(ref, response.serialized_data, response.status);
+    // Send to main!! Not to the worker conn.
+    await raylet_ws.send(raylet_ws.getMainId(), raylet_ws.API.FreeWorker, msg);
+    logging(`Task done: ${cid}`);
+    return response;
+}
+  
+async function runTaskRemote(raylet_ws, worker, cid, task_name, args) {
+    /*
+     * UNLIKE runTaskLocal, we call the remote then we wait for the response status
+     * to ensure that the task is started, dataref is saved and broadcasted.
+     */
+    if (worker.getConnectionType() != Connection.WS) {
+        throw new Error(`Incorrect connectionType: ${worker.getConnectionType()}`);
+    }
+    const msg = { "cid": cid, "worker_id": worker.idx, "task_name": task_name, "args": args };
+    const response = await raylet_ws.send(worker.connection.rayletid, raylet_ws.API.WorkerRun, msg);
+    return response;
+}
+
+export const SharedLogic = {
+    initTask, runTaskLocal, runTaskRemote
 }
