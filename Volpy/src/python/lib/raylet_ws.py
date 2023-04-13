@@ -118,9 +118,10 @@ class VolpyWS(SimpleWS):
         cid, worker_id, task_name, args = data["cid"], data["worker_id"], data["task_name"], data["args"]
         logging.info(f'Recv workerRun: {cid} {worker_id} {task_name}')
         worker = scheduler.getWorkerById(worker_id)
-        # There shouldn't be a workerRun call that will redirect us back to ws
+        # There shouldn't be a workerRun call that will redirect us back to remote ws
         assert(worker.getConnectionType() == Connection.IPC)
         ref = generateDataRef()
+        logging.info(f'Generate ref: {cid} {ref}')
         task = SharedLogic.runTaskLocal(session, worker, cid, ref, task_name, args)
         future = asyncio.ensure_future(task)
         datastore.putFuture(ref, future)

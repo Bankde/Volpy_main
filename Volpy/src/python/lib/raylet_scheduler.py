@@ -53,8 +53,8 @@ class Scheduler(object, metaclass=Singleton):
         self.rr = 0
         self.tasks: Dict[str, tuple[bytes, List[str]]] = {}
 
-    def saveTask(self, taskname: str, serialized_task: bytes, module_list: List[str]):
-        self.tasks[taskname] = (serialized_task, module_list)
+    def saveTask(self, task_name: str, serialized_task: bytes, module_list: List[str]):
+        self.tasks[task_name] = (serialized_task, module_list)
 
     def getAllTasks(self) -> Dict[str, tuple[bytes, List[str]]]:
         return self.tasks
