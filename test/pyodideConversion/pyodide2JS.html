@@ -1,0 +1,54 @@
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.20.0/full/pyodide.js"></script>
+  </head>
+  <body>
+    <script>
+      function checkType(arg) {
+        console.log(`JS typeof ${arg} is ${typeof(arg)}`);
+      }
+      async function main() {
+        let pyodide = await loadPyodide();
+        console.log("Done initialize pyodide");
+        await pyodide.loadPackage('numpy')
+        pyodide.runPython(`
+def test():
+  data = bytearray(b"HelloWorld")
+  return data
+
+a = 100
+b = 100.23
+c = "helloWorld"
+d = [1,2,3]
+e = {"A":"B"}
+`)
+        let ret = pyodide.globals.get("test")();
+        checkType(ret);
+        console.log(ret);
+        let retjs = ret.toJs();
+        checkType(retjs);
+        console.log(retjs);
+
+        checkType(pyodide.globals.get("a"));
+        checkType(pyodide.globals.get("b"));
+        checkType(pyodide.globals.get("c"));
+        checkType(pyodide.globals.get("d"));
+        checkType(pyodide.globals.get("e"));
+
+      };
+/*
+pyodide2JS.html:8 JS typeof bytearray(b'HelloWorld') is object
+pyodide2JS.html:27 Proxy(PyProxyClass) {$$: {…}}
+pyodide2JS.html:8 JS typeof 72,101,108,108,111,87,111,114,108,100 is object
+pyodide2JS.html:30 Uint8Array(10) [72, 101, 108, 108, 111, 87, 111, 114, 108, 100, buffer: ArrayBuffer(10), byteLength: 10, byteOffset: 0, length: 10, Symbol(Symbol.toStringTag): 'Uint8Array']
+pyodide2JS.html:8 JS typeof 100 is number
+pyodide2JS.html:8 JS typeof 100.23 is number
+pyodide2JS.html:8 JS typeof helloWorld is string
+pyodide2JS.html:8 JS typeof [1, 2, 3] is object
+pyodide2JS.html:8 JS typeof {'A': 'B'} is object
+*/
+      main();
+    </script>
+    Hello World
+    </body>
+</html>

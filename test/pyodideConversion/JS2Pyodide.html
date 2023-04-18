@@ -23,14 +23,22 @@ def checkType(arg):
         let px = pyodide.toPy(byteArr);
         console.log(`JS typeof ${px} is ${typeof(px)}`);
         checkType(px);
+        checkType(100);
+        checkType(100.23);
+        checkType([1,2,3]);
+        checkType({"A":"B"});
       };
 /*
 JS2Pyodide.html:17 JS typeof HelloWorld is string
 pyodide.asm.js:14 Python typeof HelloWorld is <class 'str'>
 JS2Pyodide.html:21 JS typeof 72,101,108,108,111,87,111,114,108,100 is object
 pyodide.asm.js:14 Python typeof 72,101,108,108,111,87,111,114,108,100 is <class 'pyodide.JsProxy'>
-JS2Pyodide.html:24 JS typeof <memory at 0xe01c28> is object
-pyodide.asm.js:14 Python typeof <memory at 0xe01c28> is <class 'memoryview'>
+JS2Pyodide.html:24 JS typeof <memory at 0x9b7978> is object
+pyodide.asm.js:14 Python typeof <memory at 0x9b7978> is <class 'memoryview'>
+pyodide.asm.js:14 Python typeof 100 is <class 'int'>
+pyodide.asm.js:14 Python typeof 100.23 is <class 'float'>
+pyodide.asm.js:14 Python typeof 1,2,3 is <class 'pyodide.JsProxy'>
+pyodide.asm.js:14 Python typeof [object Object] is <class 'pyodide.JsProxy'>
 */
       main();
     </script>

@@ -3,6 +3,8 @@ import cloudpickle
 def test(a):
     return a+1
 
+# Memoryview test in case we send "ArrayBuffer" from javascript into pyodide.
+
 s1 = cloudpickle.dumps(test)
 print(f's1 type: ${type(s1)}')
 v1 = memoryview(s1)

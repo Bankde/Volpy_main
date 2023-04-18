@@ -35,6 +35,9 @@ async def test_repl(i):
 
         case 3:
             print("Test run 10 times (blocking)")
+            def test(i):
+                return i+1
+            Volpy.registerRemote(test)
             for i in range(10):
                 print(test.remote(i).get())
             print("=====================")
@@ -62,7 +65,7 @@ async def test_repl(i):
             def findMax(i):
                 return np.max(i)
             Volpy.registerRemote(findMax)
-            findMax.remote(np.array([1,3,7,2])).get()
+            print(findMax.remote(np.array([1,3,7,2])).get())
             print("=====================")
 
 def csv_list(s):
