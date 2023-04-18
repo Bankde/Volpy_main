@@ -1,0 +1,39 @@
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.20.0/full/pyodide.js"></script>
+  </head>
+  <body>
+    <script>
+      async function main() {
+        let pyodide = await loadPyodide();
+        console.log("Done initialize pyodide");
+        await pyodide.loadPackage('numpy')
+        pyodide.runPython(`
+def checkType(arg):
+    print(f'Python typeof {arg} is {type(arg)}')
+`)
+        const checkType = pyodide.globals.get("checkType");
+        let s = "HelloWorld";
+        console.log(`JS typeof ${s} is ${typeof(s)}`);
+        checkType(s);
+        let encoder = new TextEncoder();
+        let byteArr = encoder.encode(s);
+        console.log(`JS typeof ${byteArr} is ${typeof(byteArr)}`);
+        checkType(byteArr);
+        let px = pyodide.toPy(byteArr);
+        console.log(`JS typeof ${px} is ${typeof(px)}`);
+        checkType(px);
+      };
+/*
+JS2Pyodide.html:17 JS typeof HelloWorld is string
+pyodide.asm.js:14 Python typeof HelloWorld is <class 'str'>
+JS2Pyodide.html:21 JS typeof 72,101,108,108,111,87,111,114,108,100 is object
+pyodide.asm.js:14 Python typeof 72,101,108,108,111,87,111,114,108,100 is <class 'pyodide.JsProxy'>
+JS2Pyodide.html:24 JS typeof <memory at 0xe01c28> is object
+pyodide.asm.js:14 Python typeof <memory at 0xe01c28> is <class 'memoryview'>
+*/
+      main();
+    </script>
+    Hello World
+    </body>
+</html>

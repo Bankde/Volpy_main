@@ -1,0 +1,48 @@
+<html>
+    <head>
+        <script src="autobahn.min.js"></script>
+    </head>
+    <body>
+<script>
+async function checkType(session, data) {
+    t = await session.call('com.python.checkType', [data]);
+    console.log(`Data: ${data} // ${typeof(data)} // ${t}`);
+}
+
+const encoder = new TextEncoder();
+    
+async function runPythonCheck(session) {
+    await checkType(session, 123);
+    await checkType(session, 12.34);
+    await checkType(session, "t");
+    await checkType(session, encoder.encode("test"));
+    await checkType(session, [1,2,3]);
+    await checkType(session, {"A":"B"});
+}
+
+var connection = new autobahn.Connection({url: 'ws://127.0.0.1:8080/ws', realm: 'Volpy'});
+connection.onopen = async function (session) {
+    function checkJSType(args) {
+        // In autobahn-js, the args is always an array.
+        return typeof(args[0]);
+    }
+    session.register("com.js.checkType", checkJSType);
+    console.log("Joined");
+    session.call('com.python.runJSCheck');
+    runPythonCheck(session);
+}
+
+connection.open();
+
+/*
+(index):9 Data: 123 // number // <class 'int'>
+(index):9 Data: 12.34 // number // <class 'float'>
+(index):9 Data: t // string // <class 'str'>
+(index):9 Data: 116,101,115,116 // object // <class 'dict'>
+    Uint8Array => dict
+(index):9 Data: 1,2,3 // object // <class 'list'>
+(index):9 Data: [object Object] // object // <class 'dict'>
+*/
+</script>
+    </body>
+</html>

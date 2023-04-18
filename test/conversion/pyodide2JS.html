@@ -1,0 +1,33 @@
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.20.0/full/pyodide.js"></script>
+  </head>
+  <body>
+    <script>
+      async function main() {
+        let pyodide = await loadPyodide();
+        console.log("Done initialize pyodide");
+        await pyodide.loadPackage('numpy')
+        pyodide.runPython(`
+def test():
+  data = bytearray(b"HelloWorld")
+  return data
+`)
+        let ret = pyodide.globals.get("test")();
+        console.log(`JS typeof ${ret} is ${typeof(ret)}`);
+        console.log(ret);
+        let retjs = ret.toJs();
+        console.log(`JS typeof ${retjs} is ${typeof(retjs)}`);
+        console.log(retjs);
+      };
+/*
+JS typeof bytearray(b'HelloWorld') is object
+pyodide2JS.html:18 Proxy(PyProxyClass) {$$: {…}}
+pyodide2JS.html:20 JS typeof 72,101,108,108,111,87,111,114,108,100 is object
+pyodide2JS.html:21 Uint8Array(10) [72, 101, 108, 108, 111, 87, 111, 114, 108, 100, buffer: ArrayBuffer(10), byteLength: 10, byteOffset: 0, length: 10, Symbol(Symbol.toStringTag): 'Uint8Array']
+*/
+      main();
+    </script>
+    Hello World
+    </body>
+</html>
