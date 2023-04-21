@@ -21,6 +21,26 @@ Test conversion Byte2Str
     Test for 1000000 chars: 0 ms // gen 725 ms
     Test for 10000000 chars: 2 ms // gen 7354 ms
     Test for 100000000 chars: 53 ms // gen 71675 ms
+
+gcloud
+Test conversion Str2Byte
+    Test for 10 chars: 0 ms // gen 0 ms
+    Test for 100 chars: 0 ms // gen 0 ms
+    Test for 1000 chars: 0 ms // gen 0 ms
+    Test for 10000 chars: 0 ms // gen 5 ms
+    Test for 100000 chars: 0 ms // gen 43 ms
+    Test for 1000000 chars: 0 ms // gen 435 ms
+    Test for 10000000 chars: 5 ms // gen 4332 ms
+    Test for 100000000 chars: 41 ms // gen 43903 ms
+Test conversion Byte2Str
+    Test for 10 chars: 1 ms // gen 0 ms
+    Test for 100 chars: 0 ms // gen 0 ms
+    Test for 1000 chars: 0 ms // gen 0 ms
+    Test for 10000 chars: 0 ms // gen 5 ms
+    Test for 100000 chars: 0 ms // gen 47 ms
+    Test for 1000000 chars: 0 ms // gen 467 ms
+    Test for 10000000 chars: 2 ms // gen 4678 ms
+    Test for 100000000 chars: 37 ms // gen 47551 ms
 """
 
 def getMs():

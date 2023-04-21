@@ -1,0 +1,54 @@
+<html>
+    <head>
+        <script src="autobahn.min.js"></script>
+    </head>
+    <body>
+<script>
+/*
+Testing on byte-str-ArrayBuffer conversion between py-js.
+*/
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+async function send(session, data) {
+    console.log(data);
+    let s = [];
+    for (let i=0; i<data.length; i++) {
+        s.push(String.fromCharCode(data[i]));
+    }
+    let b64_data = btoa(s.join(''));
+    console.log(b64_data);
+    await session.call('com.python.recv', [b64_data]);
+}
+
+async function sendFromJSToPython(session) {
+    let dataArr = new Uint8Array([128, 97, 0, 66, 67, 255, 238, 221, 88, 89, 90]);
+    await send(session, dataArr);
+}
+
+var connection = new autobahn.Connection({url: 'ws://127.0.0.1:8080/ws', realm: 'Volpy'});
+connection.onopen = async function (session) {
+    function recv(args) {
+        let data = args[0]
+        console.log(data);
+        let raw_data = atob(data);
+        let dataArr = new Uint8Array(raw_data.length);
+        for (let i=0; i<raw_data.length; i++) {
+            dataArr[i] = raw_data.charCodeAt(i);
+        }
+        console.log(dataArr.toString(), typeof(dataArr));
+        console.log(dataArr);
+    }
+    session.register("com.js.recv", recv);
+    console.log("Joined");
+
+    /* First one to test sending Python to JS, Second on to test JS to Python. */
+    // session.call('com.python.sendFromPythonToJS');
+    sendFromJSToPython(session);
+}
+
+connection.open();
+
+</script>
+    </body>
+</html>

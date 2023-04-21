@@ -1,0 +1,53 @@
+<html>
+    <head>
+        <script src="autobahn.min.js"></script>
+    </head>
+    <body>
+<script>
+const encoder = new TextEncoder();
+const decoder = new TextDecoder(); 
+
+// sleep time expects milliseconds
+function sleep (time) {
+  return new Promise((resolve) => setTimeout(resolve, time));
+}
+
+var connection = new autobahn.Connection({url: 'ws://127.0.0.1:8080/ws', realm: 'Volpy'});
+connection.onopen = async function (session) {
+    function var1(args) {
+        let data = args[0]
+        console.log(data);
+        return [data, data.toString(), typeof(data)]
+    }
+    function var2(args) {
+        let data = args[0]
+        let a = encoder.encode(args[0]);
+        console.log(a);
+        return [a, a.toString(), typeof(a)]
+    }
+    function var3(args) {
+        let data = args[0];
+        let a = (' ' + data).slice(1);
+        console.log(a);
+        return [a, a.toString(), typeof(a)]
+    }
+    session.register("com.js2.var1", var1);
+    session.register("com.js2.var2", var2);
+    session.register("com.js2.var3", var3);
+    console.log("Joined");
+}
+
+connection.open();
+
+/*
+Test byte from Javascript 2 Javascript
+Send: Uint8Array
+byteStr.html:18 Data: 0,103,71,69,65,81,107,80,47,55,116,49,89,87,86,111,61 // object, [object Object] // [object Object] // object
+    Recv: {0: 0, 1: 103, 2: 71, 3: 69, 4: 65, 5: 81, 6: 107, 7: 80, 8: 47, 9: 55, 10: 116, 11: 49, 12: 89, 13: 87, 14: 86, 15: 111, 16: 61}
+byteStr.html:20 Data: 0,103,71,69,65,81,107,80,47,55,116,49,89,87,86,111,61 // object, [object Object] // 91,111,98,106,101,99,116,32,79,98,106,101,99,116,93 // object
+    Recv: Uint8Array(15) [91, 111, 98, 106, 101, 99, 116, 32, 79, 98, 106, 101, 99, 116, 93]
+byteStr.html:22 Data: 0,103,71,69,65,81,107,80,47,55,116,49,89,87,86,111,61 // object, [object Object] // [object Object] // string
+*/
+</script>
+    </body>
+</html>
