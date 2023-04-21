@@ -52,19 +52,34 @@ export class SimpleWS {
       if (!(msgType in this.callback)) {
          throw new Error("MsgType not implement");
       }
+      if (this.dataRecvCallback != null) {
+         data = this.dataRecvCallback(data);
+      }
       let f = this.callback[msgType];
       let ret_obj = await f(data);
+      if (this.dataSendCallback != null) {
+         ret_obj = this.dataSendCallback(ret_obj);
+      }
       return ret_obj;
    }
 
    async send(id, msgType, data) {
+      if (this.dataSendCallback != null) {
+         data = this.dataSendCallback(data);
+      }
       let msg = { "msgType": msgType, "data": data };
-      let t = await this.session.call(`com.node${id}.call`, [ msg ]);
-      return t;
+      let ret_obj = await this.session.call(`com.node${id}.call`, [ msg ]);
+      if (this.dataRecvCallback != null) {
+         ret_obj = this.dataRecvCallback(ret_obj);
+      }
+      return ret_obj;
    }
 
    async broadcast(msgType, data) {
       // logging(`${this.id} broadcast: ${data}`);
+      if (self.dataSendCallback != null) {
+         data = self.dataSendCallback(data);
+      }
       let msg = { "msgType": msgType, "data": data };
       let tasks = [];
       for (const id in this.id2uuid.getMap()) {
@@ -75,6 +90,11 @@ export class SimpleWS {
          tasks.push(t);
       }
       let ts = await Promise.all(tasks);
+      if (self.dataRecvCallback != null) {
+         ts.forEach((data, index, ret_objs) => {
+            ret_objs[index] = self.dataRecvCallback(data);
+         });
+      }
       return ts;
    }
 
@@ -100,5 +120,7 @@ export class SimpleWS {
       this.callback = {};
       this.heartbeat = {};
       this.callback["0"] = function (x) { x };
+      this.dataRecvCallback = null;
+      this.dataSendCallback = null;
    }
 }

@@ -55,6 +55,41 @@ class VolpyWS extends SimpleWS {
         });
     }
 
+    addDataCallback() {
+        const targetData = ["serialized_task", "serialized_data"];
+        this.dataRecvCallback = ((data) => {
+            if (data == null) {
+                return data
+            }
+            for (const key of targetData) {
+                if (key in data) {
+                    let raw_data = atob(data[key]);
+                    let dataArr = new Uint8Array(raw_data.length);
+                    for (let i=0; i<raw_data.length; i++) {
+                        dataArr[i] = raw_data.charCodeAt(i);
+                    }
+                    data[key] = dataArr;
+                }
+            }
+            return data
+        });
+        this.dataSendCallback = ((data) => {
+            if (data == null) {
+                return data
+            }
+            for (const key of targetData) {
+                if (key in data) {
+                    let s = [];
+                    for (let i=0; i<data.length; i++) {
+                        s.push(String.fromCharCode(data[i]));
+                    }
+                    let b64_data = btoa(s.join(''));
+                    data[key] = b64_data;
+                }
+            }
+        });
+    }
+
     async createTask(data) {
         /*
         Receive CreateTask from raylet (either main/not) ws.
