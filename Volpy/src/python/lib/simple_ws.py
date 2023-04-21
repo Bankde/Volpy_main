@@ -26,6 +26,8 @@ class SimpleWS(ApplicationSession):
         self.callback = {}
         self.heartbeat = {}
         self.callback["0"] = lambda x: x
+        self.dataSendCallback = None
+        self.dataRecvCallback = None
         self.logging = logger
 
     async def onJoin(self, details):
@@ -103,23 +105,28 @@ class SimpleWS(ApplicationSession):
         msgType, data = msg["msgType"], msg["data"]
         if msgType not in self.callback:
             raise RuntimeError("MsgType not implemented")
+        data = self.dataRecvCallback(data) if self.dataRecvCallback else data
         f = self.callback[msgType]
         ret_obj = await f(MsgObj(data))
+        ret_obj = self.dataSendCallback(ret_obj) if self.dataSendCallback else ret_obj
         return ret_obj
 
     async def send(self, id: str, msgType, data):
         assert(type(id) == str)
         if msgType not in self.callback:
             raise RuntimeError("MsgType not implemented")
+        data = self.dataSendCallback(data) if self.dataSendCallback else data
         msg = { "msgType": msgType,
                 "data": data}
-        t = await self.call(f'com.node{id}.call', msg)
-        return MsgObj(t)
+        ret_obj = await self.call(f'com.node{id}.call', msg)
+        ret_obj = self.dataRecvCallback(ret_obj) if self.dataRecvCallback else ret_obj
+        return MsgObj(ret_obj)
 
     async def broadcast(self, msgType, data):
         self.logging.debug(f'{self.id} broadcast: {data}')
         if msgType not in self.callback:
             raise RuntimeError("MsgType not implemented")
+        data = self.dataSendCallback(data) if self.dataSendCallback else data
         msg = { "msgType": msgType,
                 "data": data}
         tasks = []
@@ -129,7 +136,10 @@ class SimpleWS(ApplicationSession):
             t = self.call(f'com.node{id}.call', msg)
             tasks.append(t)
         ts = await asyncio.gather(*tasks)
-        return [MsgObj(t) for t in ts]
+        if self.dataRecvCallback:
+            return [MsgObj(self.dataRecvCallback(t)) for t in ts]
+        else:
+            return [MsgObj(t) for t in ts]
 
     def getId(self) -> str:
         return self.id

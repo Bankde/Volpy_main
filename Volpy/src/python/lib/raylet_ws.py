@@ -3,6 +3,7 @@ from .config import config
 from autobahn.wamp.types import ComponentConfig
 from autobahn.asyncio.wamp import ApplicationRunner
 from .raylet_scheduler import scheduler, datastore, Connection, SharedLogic
+import base64
 
 from .util import Status, generateDataRef
 
@@ -62,6 +63,25 @@ class VolpyWS(SimpleWS):
         # ret: {"status": int, "serialized_data": bytes}
         # Get data from ref
         self.setCallback(self.API.GetData, self.getData)
+
+    def addDataCallback(self):
+        def recvConversion(data):
+            if data == None:
+                return data
+            for key in ["serialized_task", "serialized_data"]:
+                if key in data:
+                    data[key] = base64.b64decode(data[key])
+            return data
+        def sendConversion(data):
+            if data == None:
+                return data
+            for key in ["serialized_task", "serialized_data"]:
+                if key in data:
+                    # byte --[base64]-->  byte --[decode_to_str]--> str
+                    data[key] = (base64.b64encode(data[key])).decode('ascii')
+            return data
+        self.dataRecvCallback = recvConversion
+        self.dataSendCallback = sendConversion
 
     async def createTask(self, data):
         """
@@ -163,5 +183,6 @@ def volpy_ws_create_session_runner(uuid, router, realm=None, is_main=False, logg
     session = VolpyWS(ComponentConfig(realm, {}))
     session.init(uuid, is_main, logger=logging)
     session.addHandler()
+    session.addDataCallback()
     runner = ApplicationRunner(router, realm)
     return session, runner
