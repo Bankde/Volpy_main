@@ -68,14 +68,14 @@ class VolpyWS(SimpleWS):
         def recvConversion(data):
             if data == None:
                 return data
-            for key in ["serialized_task", "serialized_data"]:
+            for key in ["serialized_task", "serialized_data", "args"]:
                 if key in data:
                     data[key] = base64.b64decode(data[key])
             return data
         def sendConversion(data):
             if data == None:
                 return data
-            for key in ["serialized_task", "serialized_data"]:
+            for key in ["serialized_task", "serialized_data", "args"]:
                 if key in data:
                     # byte --[base64]-->  byte --[decode_to_str]--> str
                     data[key] = (base64.b64encode(data[key])).decode('ascii')
