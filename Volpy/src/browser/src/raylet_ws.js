@@ -148,7 +148,6 @@ class VolpyWS extends SimpleWS {
             this.datastore.saveVal(dataref, response.serialized_data, response.status);
         }
         let [ status, val ] = this.datastore.get(dataref);
-        logging(`Get: ${status} ${val}`);
         let msg_obj = {"status": status, "serialized_data": val}
         return msg_obj
     }
