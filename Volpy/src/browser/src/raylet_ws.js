@@ -56,7 +56,7 @@ class VolpyWS extends SimpleWS {
     }
 
     addDataCallback() {
-        const targetData = ["serialized_task", "serialized_data"];
+        const targetData = ["serialized_task", "serialized_data", "args"];
         this.dataRecvCallback = ((data) => {
             if (data == null) {
                 return data
@@ -80,13 +80,15 @@ class VolpyWS extends SimpleWS {
             for (const key of targetData) {
                 if (key in data) {
                     let s = [];
-                    for (let i=0; i<data.length; i++) {
-                        s.push(String.fromCharCode(data[i]));
+                    let raw_data = data[key];
+                    for (let i=0; i<raw_data.length; i++) {
+                        s.push(String.fromCharCode(raw_data[i]));
                     }
                     let b64_data = btoa(s.join(''));
                     data[key] = b64_data;
                 }
             }
+            return data
         });
     }
 
@@ -142,10 +144,11 @@ class VolpyWS extends SimpleWS {
         // unlike IPC case, when we get ws request, it should guarantee that the data is here.
         let fut = this.datastore.getFuture(dataref);
         if (fut != null) {
-            response = await fut;
+            let response = await fut;
             this.datastore.saveVal(dataref, response.serialized_data, response.status);
         }
         let [ status, val ] = this.datastore.get(dataref);
+        logging(`Get: ${status} ${val}`);
         let msg_obj = {"status": status, "serialized_data": val}
         return msg_obj
     }
@@ -155,6 +158,7 @@ export function VolpyWSCreateSession(config) {
     let session = new VolpyWS(config);
     session.init(config.uuid);
     session.addHandler();
+    session.addDataCallback();
     session.start();
     return session;
 }
