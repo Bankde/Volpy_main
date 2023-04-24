@@ -176,7 +176,9 @@ def _function_getstate(func):
     modules = set()
     for var in itertools.chain(f_globals.values(), closure_values):
         if isinstance(var, types.ModuleType):
-            modules.add(var.__name__.split(".")[0])
+            mod_name = var.__name__.split(".")[0]
+            if mod_name not in sys.builtin_module_names and f"_${mod_name}" not in sys.builtin_module_names:
+                modules.add(mod_name)
 
     state = func.__dict__
     return (state, slotstate, closure_map), modules
