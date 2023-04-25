@@ -43,7 +43,7 @@ class VolpyStub(object):
         self.Put = channel.unary_unary(
                 '/raylet.Volpy/Put',
                 request_serializer=volpy__pb2.Data.SerializeToString,
-                response_deserializer=volpy__pb2.DataRef.FromString,
+                response_deserializer=volpy__pb2.StatusWithDataRef.FromString,
                 )
 
 
@@ -120,7 +120,7 @@ def add_VolpyServicer_to_server(servicer, server):
             'Put': grpc.unary_unary_rpc_method_handler(
                     servicer.Put,
                     request_deserializer=volpy__pb2.Data.FromString,
-                    response_serializer=volpy__pb2.DataRef.SerializeToString,
+                    response_serializer=volpy__pb2.StatusWithDataRef.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -230,6 +230,6 @@ class Volpy(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/raylet.Volpy/Put',
             volpy__pb2.Data.SerializeToString,
-            volpy__pb2.DataRef.FromString,
+            volpy__pb2.StatusWithDataRef.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

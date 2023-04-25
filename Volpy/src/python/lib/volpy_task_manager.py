@@ -29,6 +29,12 @@ class VolpyDataRef(object):
             return task_manager.deserializeData(response.serialized_data)
         else:
             raise RuntimeError(response.status)
+        
+    def __reduce_ex__(self, __protocol):
+        return (self.__class__, (self.ref,))
+    
+    def __repr__(self):
+        return str(self.ref)
 
 class TaskManager(object, metaclass=Singleton):
     def setup(self, ipc_caller):
@@ -70,6 +76,14 @@ class TaskManager(object, metaclass=Singleton):
         task = codepickle.loads(serializedTask)
         task.remote = self._generateRemoteFunc(task)
         return task
+    
+    def get(self, dataref):
+        if isinstance(dataref, VolpyDataRef):
+            return dataref.get()
+        elif isinstance(dataref, str):
+            return VolpyDataRef(dataref).get()
+        else:
+            raise RuntimeError(f'Incorrect type for dataref: got {type(dataref)}, expected str or VolpyDataRef')
 
     def put(self, data):
         serialized_data = self.serializeData(data)
@@ -84,3 +98,4 @@ registerRemote = task_manager.registerRemote
 serializeUploadTask = task_manager.serializeUploadTask
 deserializeUploadTask = task_manager.deserializeUploadTask
 put = task_manager.put
+get = task_manager.get

@@ -22,6 +22,6 @@ service Volpy {
 
   // DataStore
   rpc Get(DataRef) returns (StatusWithData) {}
-  rpc Put(Data) returns (DataRef) {}
+  rpc Put(Data) returns (StatusWithDataRef) {}
 }
 

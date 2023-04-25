@@ -1,6 +1,7 @@
 from .volpy_task_manager import task_manager
 from .volpy_task_manager import registerRemote, put
 import inspect
+import logging, traceback
 
 tasklist = {}
 
@@ -20,9 +21,11 @@ async def executeTask(task_name, serialized_data):
         if inspect.iscoroutinefunction(task):
             ret = await task(*kwargs)
         else:
-            # TODO: try asyncio.to_thread
+            # TODO: try asyncio.to_thread? so our execution doesn't block the ipc.
             ret = task(*kwargs)
-    except:
+    except Exception as e:
+        err_msg = traceback.format_exc()
+        logging.info(err_msg) # So programmer knows what's wrong.
         raise ExecutionError
     try:
         serialized_data = task_manager.serializeData(ret)

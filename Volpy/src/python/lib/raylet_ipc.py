@@ -95,6 +95,7 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
         return raylet_pb2.Status(status=Status.SUCCESS)
     
     async def GetAllTasks(self, request, context):
+        logging.info(f'Recv ipc GetAllTasks')
         all_tasks = scheduler.getAllTasks()
         all_tasks_arr = []
         for task_name in all_tasks:
@@ -108,6 +109,7 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
         This API is blocking until the task is finished and return the result.
         '''
         ref = request.dataref
+        logging.info(f'Recv ipc Get: {ref}')
         fut = datastore.getFuture(ref)
         if fut:
             response = await fut
@@ -124,6 +126,7 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
     async def Put(self, request, context):
         val = request.serialized_data
         ref = generateDataRef()
+        logging.info(f'Recv ipc Put: {ref}')
         datastore.put(ref, val)
         # Broadcast dataref to all raylets
         msg = {"dataref": ref, "rayletid": raylet_ws.getId()}
