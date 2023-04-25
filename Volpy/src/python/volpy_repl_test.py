@@ -11,7 +11,7 @@ import argparse
 import logging, sys
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-TEST_COUNT = 5
+TEST_COUNT = 7
 async def test_repl(i):
     match i:
         case 1:
@@ -66,6 +66,30 @@ async def test_repl(i):
                 return np.max(i)
             Volpy.registerRemote(findMax)
             print(findMax.remote(np.array([1,3,7,2])).get())
+            print("=====================")
+
+        case 6:
+            print("Get and Put from worker [ret: 6]")
+            ref1 = Volpy.put(5)
+            def plusOneToRef(ref):
+                d = Volpy.get(ref)
+                d = d + 1
+                ref2 = Volpy.put(d)
+                return ref2
+            Volpy.registerRemote(plusOneToRef)
+            # Remote -> get return result (ref) -> getValue from ref
+            print(plusOneToRef.remote(ref1).get().get())
+            print("=====================")
+
+        case 7:
+            print("Worker calls remote (req: 2+ workers) [ret: 2]")
+            def factorial(i):
+                if i > 1:
+                    return i * factorial.remote(i-1).get()
+                else:
+                    return 1
+            Volpy.registerRemote(factorial)
+            print(factorial.remote(2).get())
             print("=====================")
 
 def csv_list(s):
