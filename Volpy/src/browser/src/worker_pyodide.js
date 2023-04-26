@@ -115,13 +115,11 @@ def put(data):
 
 tasklist = {}
 
-def initTask(task_name, p_serialized_task):
-    serialized_task = p_serialized_task.to_py()
+def initTask(task_name, serialized_task):
     tasklist[task_name] = deserializeUploadTask(serialized_task)
 
-async def executeTask(task_name, p_serialized_data):
+async def executeTask(task_name, serialized_data):
     try:
-        serialized_data = p_serialized_data.to_py()
         kwargs = deserializeData(serialized_data)
         task = tasklist[task_name]
         if inspect.iscoroutinefunction(task):
@@ -135,8 +133,7 @@ async def executeTask(task_name, p_serialized_data):
         serialized_data = serializeData(ret)
     except:
         return [Status.SERIALIZATION_ERROR, b""]
-    js_serialized_data = pyodide.ffi.to_js(serialized_data)
-    return [Status.SUCCESS, js_serialized_data]
+    return [Status.SUCCESS, serialized_data]
     `);
 }
 let pyodideReadyPromise = loadPyodideAndPackages();
@@ -145,26 +142,29 @@ let pyodideReadyPromise = loadPyodideAndPackages();
 // const executeTask = pyodide.globals.get("executeTask");
 
 expose('InitTask', async (data) => {
-    await pyodideReadyPromise;
     const py_initTask = pyodide.globals.get("initTask");
     let { task_name, serialized_task, module_list } = data;
     logging(`Recv InitTask: ${task_name}`);
     await self.micropip.install(module_list);
-    await py_initTask(task_name, serialized_task);
+    let p_serialized_task = pyodide.toPy(serialized_task);
+    await py_initTask(task_name, p_serialized_task);
     return 0;
 }, opts);
 
 expose('RunTask', async (data) => {
-    await pyodideReadyPromise;
     const py_executeTask = pyodide.globals.get("executeTask");
     let { cid, task_name, args } = data;
     logging(`Recv RunTask: ${cid} ${task_name}`);
-    let ret = (await py_executeTask(task_name, args)).toJs({depth:1});
+    let p_args = pyodide.toPy(args);
+    let p_ret = await py_executeTask(task_name, p_args)
+    let ret = p_ret.toJs();
     let status = ret[0];
     let serialized_data = ret[1];
     let msg = { "status": status, "serialized_data": serialized_data};
     return msg;
 }, opts);
 
-// call initWorker after finishing everything.
-(caller('InitWorker', opts))();
+pyodideReadyPromise.then((result) => {
+    // call initWorker after finishing everything.
+    (caller('InitWorker', opts))();
+});
