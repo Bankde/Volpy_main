@@ -11,7 +11,7 @@ import argparse
 import logging, sys
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-TEST_COUNT = 7
+TEST_COUNT = 8
 async def test_repl(i):
     match i:
         case 1:
@@ -69,6 +69,15 @@ async def test_repl(i):
             print("=====================")
 
         case 6:
+            print("Test async function [ret: 7]")
+            async def callMe(x):
+                await asyncio.sleep(2)
+                return x
+            volpy.registerRemote(callMe)
+            print(callMe.remote(7).get())
+            print("=====================")
+
+        case 7:
             print("Get and Put from worker [ret: 6]")
             ref1 = volpy.put(5)
             def plusOneToRef(ref):
@@ -81,7 +90,7 @@ async def test_repl(i):
             print(plusOneToRef.remote(ref1).get().get())
             print("=====================")
 
-        case 7:
+        case 8:
             print("Worker calls remote (req: 2+ workers) [ret: 2]")
             def factorial(i):
                 if i > 1:
