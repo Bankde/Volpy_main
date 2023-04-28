@@ -19,11 +19,35 @@ const opts = {
 };
 
 self.Status = Status;
-self.createTaskStub = caller('CreateTask', opts);
-self.submitTaskStub = caller('SubmitTask', opts);
+const createTaskStub = caller('CreateTask', opts);
+const submitTaskStub = caller('SubmitTask', opts);
 // getAllTaskStrub = caller('GetAllTasks', opts); // Shouldn't be used unless we introduce worker killing/reset.
-self.getStub = caller('Get', opts);
-self.putStub = caller('Put', opts);
+const getStub = caller('Get', opts);
+const putStub = caller('Put', opts);
+
+self.CreateTask = async (task_name, p_serialized_task, p_module_list) => {
+    let serialized_task = p_serialized_task.toJs();
+    let module_list = p_module_list.toJs();
+    let msg = { task_name, serialized_task, module_list }
+    return await createTaskStub(msg);
+};
+
+self.SubmitTask = async (cid, task_name, p_args) => {
+    let args = p_args.toJs();
+    let msg = { cid, task_name, p_args }
+    return await submitTaskStub(msg);
+};
+
+self.Get = async (dataref) => {
+    let msg = { dataref };
+    return await getStub(msg);
+};
+
+self.Put = async (p_serialized_data) => {
+    let serialized_data = p_serialized_data.toJs();
+    let msg = { serialized_data };
+    return await putStub(msg);
+};
 
 async function loadPyodideAndPackages() {
     self.pyodide = await loadPyodide();
@@ -31,14 +55,13 @@ async function loadPyodideAndPackages() {
     self.micropip = pyodide.pyimport("micropip");
     await self.micropip.install(["numpy", "cloudpickle"]);
     await self.micropip.install("/static/codepickle-2.2.0.dev0-py3-none-any.whl")
+    await self.micropip.install("/static/volpy-1.0-py3-none-any.whl")
     await self.pyodide.runPythonAsync(`
-from js import Status, createTaskStub, submitTaskStub, getStub, putStub
-import codepickle
-import cloudpickle
-import sys, inspect, pyodide
+from js import Status, CreateTask, SubmitTask, Get, Put
+import codepickle, cloudpickle
+import asyncio
+import sys, inspect, pyodide, traceback
 print("Current Python " + str(sys.version))
-
-### TaskManager
 
 counter = 0
 def getCount():
@@ -46,10 +69,9 @@ def getCount():
     counter += 1
     return counter
 
-# codepickle.set_config_get_import(True)
+codepickle.set_config_get_import(True)
 
 class VolpyDataRef(object):
-    ipc_caller = None
 
     def __init__(self, ref:str):
         self.ref = ref
@@ -59,8 +81,7 @@ class VolpyDataRef(object):
         Get the result from the task.
         This method is synchronous and will block until the execution is finished.
         '''
-        msg = { "dataref": self.ref }
-        task = getStub(msg)
+        task = Get(self.ref)
         loop = asyncio.get_running_loop()
         response = loop.run_until_complete(task)
         if response.status == 0:
@@ -68,13 +89,19 @@ class VolpyDataRef(object):
         else:
             raise RuntimeError(response.status)
 
+    def __reduce_ex__(self, __protocol):
+        return (volpy.VolpyDataRef, (self.ref,))
+        
+    def __repr__(self):
+        return str(self.ref)
+
 def _generateRemoteFunc(func):
     def remote(*kwargs) -> VolpyDataRef:
         serialized_data = serializeData(kwargs)
         cid = getCount()
         loop = asyncio.get_running_loop()
         # Blocking won't take long because raylet will generate and send ref back to us
-        response = loop.run_until_complete(self.ipc_caller.SubmitTask(cid, func.__name__, serialized_data))
+        response = loop.run_until_complete(SubmitTask(cid, func.__name__, serialized_data))
         status, ref = response.status, response.dataref
         if status != Status.SUCCESS:
             raise Exception(f"Error creating task: {status}")
@@ -86,7 +113,7 @@ def registerRemote(func):
     serializedTask, module_list = serializeUploadTask(func)
     taskname = func.__name__
     loop = asyncio.get_running_loop()
-    loop.run_until_complete(self.ipc_caller.CreateTask(taskname, serializedTask, module_list))
+    loop.run_until_complete(CreateTask(taskname, serializedTask, module_list))
     func.remote = _generateRemoteFunc(func)
 
 def serializeData(args):
@@ -103,13 +130,27 @@ def deserializeUploadTask(serializedTask):
     task.remote = _generateRemoteFunc(task)
     return task
 
+def get(dataref):
+    if isinstance(dataref, VolpyDataRef):
+        return dataref.get()
+    elif isinstance(dataref, str):
+        return VolpyDataRef(dataref).get()
+    else:
+        raise RuntimeError(f'Incorrect type for dataref: got {type(dataref)}, expected str or VolpyDataRef')
+
 def put(data):
     serialized_data = serializeData(data)
     loop = asyncio.get_running_loop()
-    response = loop.run_until_complete(self.ipc_caller.Put(serialized_data))
+    response = loop.run_until_complete(Put(serialized_data))
     status, ref = response.status, response.dataref
     dataRef = VolpyDataRef(ref)
     return dataRef
+
+# Abstraction wrapper (For CreateTask and SubmitTask are done at deserializeUploadTask)
+import volpy
+# get/put is from this pyodide script, they will call JS-Get/Put later.
+dep = type('', (), { 'registerRemote': None, 'get': get, 'put': put, 'VolpyDataRef': VolpyDataRef })
+volpy.setup(dep)
 
 ### Executor
 
@@ -121,13 +162,19 @@ def initTask(task_name, serialized_task):
 async def executeTask(task_name, serialized_data):
     try:
         kwargs = deserializeData(serialized_data)
+    except:
+        return [Status.SERIALIZATION_ERROR, b""]
+    try:
         task = tasklist[task_name]
         if inspect.iscoroutinefunction(task):
             ret = await task(*kwargs)
         else:
             # TODO: try asyncio.to_thread
             ret = task(*kwargs)
-    except:
+    except Exception as e:
+        raise
+        err_msg = traceback.format_exc()
+        print(err_msg) # So programmer knows what's wrong.
         return [Status.EXECUTION_ERROR, b""]
     try:
         serialized_data = serializeData(ret)
@@ -145,6 +192,14 @@ expose('InitTask', async (data) => {
     const py_initTask = pyodide.globals.get("initTask");
     let { task_name, serialized_task, module_list } = data;
     logging(`Recv InitTask: ${task_name}`);
+    let tasks = [];
+    module_list.forEach((module) => {
+        // Use loop so we can't filter/handle error separately
+        if (module !== "volpy") {
+            tasks.push(self.micropip.install(module));
+        }
+    });
+    await Promise.all(tasks);
     await self.micropip.install(module_list);
     let p_serialized_task = pyodide.toPy(serialized_task);
     await py_initTask(task_name, p_serialized_task);

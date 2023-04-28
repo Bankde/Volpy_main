@@ -7,6 +7,7 @@ from lib import worker_executor, worker_ipc, volpy_task_manager
 from lib.worker_ipc_caller import ipc_caller
 from lib.config import config
 import lib.util as util
+import volpy
 
 import argparse
 import logging, sys
@@ -43,6 +44,7 @@ if __name__ == '__main__':
     ipc_caller.connect(config.rayletipc_addr) # Establish channel with raylet
     loop.run_until_complete(ipc_caller.waitReady())
     volpy_task_manager.TaskManager().setup(ipc_caller)
+    volpy.setup(volpy_task_manager)
     loop.run_until_complete(ipc_caller.InitWorker(config.workeripc)) # Tell our port to raylet
     response = loop.run_until_complete(ipc_caller.GetAllTasks())
     all_tasks = response.all_tasks

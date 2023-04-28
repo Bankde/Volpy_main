@@ -3,6 +3,7 @@ import cloudpickle
 from .singleton import Singleton
 import asyncio
 from .util import counter, Status
+import volpy # Abstraction for VolpyDataRef.__reduce__
 
 # We don't use import singleton ipc_caller here because 
 # this module could be in either REPL or workers.
@@ -31,7 +32,7 @@ class VolpyDataRef(object):
             raise RuntimeError(response.status)
         
     def __reduce_ex__(self, __protocol):
-        return (self.__class__, (self.ref,))
+        return (volpy.VolpyDataRef, (self.ref,))
     
     def __repr__(self):
         return str(self.ref)

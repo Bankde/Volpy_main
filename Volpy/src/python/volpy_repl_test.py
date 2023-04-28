@@ -5,7 +5,7 @@ nest_asyncio.apply()
 from lib import driver_repl, volpy_task_manager
 from lib.repl_ipc_caller import ipc_caller
 from lib.config import config
-import lib.volpy_task_manager as Volpy
+import volpy
 
 import argparse
 import logging, sys
@@ -20,15 +20,15 @@ async def test_repl(i):
                 return i+1
             def task2(i):
                 return i+2
-            Volpy.registerRemote(task1)
-            Volpy.registerRemote(task2)
+            volpy.registerRemote(task1)
+            volpy.registerRemote(task2)
             print("=====================")
 
         case 2:
             print("Test simple task, should return 4")
             def test(i):
                 return i+1
-            Volpy.registerRemote(test)
+            volpy.registerRemote(test)
             a = test.remote(3)
             print(a.get())
             print("=====================")
@@ -37,7 +37,7 @@ async def test_repl(i):
             print("Test run 10 times (blocking)")
             def test(i):
                 return i+1
-            Volpy.registerRemote(test)
+            volpy.registerRemote(test)
             for i in range(10):
                 print(test.remote(i).get())
             print("=====================")
@@ -48,7 +48,7 @@ async def test_repl(i):
             def longTask(i):
                 time.sleep(5)
                 return i+1
-            Volpy.registerRemote(longTask)
+            volpy.registerRemote(longTask)
             ts = []
             for i in range(10):
                 try:
@@ -64,19 +64,19 @@ async def test_repl(i):
             import numpy as np
             def findMax(i):
                 return np.max(i)
-            Volpy.registerRemote(findMax)
+            volpy.registerRemote(findMax)
             print(findMax.remote(np.array([1,3,7,2])).get())
             print("=====================")
 
         case 6:
             print("Get and Put from worker [ret: 6]")
-            ref1 = Volpy.put(5)
+            ref1 = volpy.put(5)
             def plusOneToRef(ref):
-                d = Volpy.get(ref)
+                d = volpy.get(ref)
                 d = d + 1
-                ref2 = Volpy.put(d)
+                ref2 = volpy.put(d)
                 return ref2
-            Volpy.registerRemote(plusOneToRef)
+            volpy.registerRemote(plusOneToRef)
             # Remote -> get return result (ref) -> getValue from ref
             print(plusOneToRef.remote(ref1).get().get())
             print("=====================")
@@ -88,7 +88,7 @@ async def test_repl(i):
                     return i * factorial.remote(i-1).get()
                 else:
                     return 1
-            Volpy.registerRemote(factorial)
+            volpy.registerRemote(factorial)
             print(factorial.remote(2).get())
             print("=====================")
 
@@ -111,6 +111,7 @@ if __name__ == '__main__':
     ipc_caller.connect(config.rayletipc_addr) # Establish channel with raylet
     loop.run_until_complete(ipc_caller.waitReady())
     volpy_task_manager.TaskManager().setup(ipc_caller)
+    volpy.setup(volpy_task_manager)
 
     if len(config.i) == 1 and config.i[0] == 0:
         config.i = list(range(1,TEST_COUNT+1))

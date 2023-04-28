@@ -1,5 +1,4 @@
 from .volpy_task_manager import task_manager
-from .volpy_task_manager import registerRemote, put
 import inspect
 import logging, traceback
 
@@ -17,6 +16,9 @@ def initTask(task_name, serialized_task, module_list=None):
 async def executeTask(task_name, serialized_data):
     try:
         kwargs = task_manager.deserializeData(serialized_data)
+    except:
+        raise SerializationError
+    try:
         task = tasklist[task_name]
         if inspect.iscoroutinefunction(task):
             ret = await task(*kwargs)
