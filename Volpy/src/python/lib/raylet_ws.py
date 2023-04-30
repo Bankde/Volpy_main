@@ -162,12 +162,14 @@ class VolpyWS(SimpleWS):
 
     async def saveDataRef(self, data):
         ref, rayletid = data["dataref"], data["rayletid"]
+        logging.info(f'Recv dataref: {ref} {rayletid}')
         datastore.putLoc(ref, rayletid)
         msg_obj = {"status": Status.SUCCESS}
         return msg_obj
 
     async def getData(self, data):
         ref = data["dataref"]
+        logging.info(f'Recv ws Get: {ref}')
         # unlike IPC case, when we get ws request, it should guarantee that the data is here.
         fut = datastore.getFuture(ref)
         if fut:

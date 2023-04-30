@@ -1,4 +1,4 @@
-import { logging } from './util.js';
+import { logging, Status } from './util.js';
 
 export const Connection = {
     NONE: 0,

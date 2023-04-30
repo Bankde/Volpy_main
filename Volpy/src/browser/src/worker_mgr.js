@@ -59,16 +59,16 @@ export class VolpyWorker {
       logging(`Worker acquire: ${cid} ${worker.getId()}`);
       if (worker.getConnectionType() == Connection.THREAD) {
         dataref = generateDataRef();
-        let task = SharedLogic.runTaskLocal(this.raylet_ws, worker, cid, ref, task_name, args);
-        this.datastore.putFuture(ref, task);
+        let task = SharedLogic.runTaskLocal(this.raylet_ws, this.datastore, worker, cid, dataref, task_name, args);
+        this.datastore.putFuture(dataref, task);
         // Broadcast to all raylet that we own the data
         let msg = { "dataref": dataref, "rayletid": this.raylet_ws.getId() };
         response = await this.raylet_ws.broadcast(this.raylet_ws.API.SaveDataRef, msg);
       } else {
         response = await SharedLogic.runTaskRemote(this.raylet_ws, worker, cid, task_name, args);
       }
-      logging(`Generate ref: ${cid} ${ref}`);
-      return { "status": response.status, "dataref": dataref };
+      logging(`Generate ref: ${cid} ${dataref}`);
+      return { "status": Status.SUCCESS, "dataref": dataref };
     }, opts);
 
     expose('InitWorker', async (data) => {
@@ -101,7 +101,8 @@ export class VolpyWorker {
         let rayletid = val;
         let msg = { "dataref": ref };
         let response = await this.raylet_ws.send(rayletid, this.raylet_ws.API.GetData, msg);
-        [ status, val ] = response.status, response.serialized_data;
+        status = response.status
+        val = response.serialized_data;
         this.datastore.saveVal(ref, val, status);
       }
       return { "status": status, "serialized_data": val };

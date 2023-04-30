@@ -29,24 +29,28 @@ self.CreateTask = async (task_name, p_serialized_task, p_module_list) => {
     let serialized_task = p_serialized_task.toJs();
     let module_list = p_module_list.toJs();
     let msg = { task_name, serialized_task, module_list }
-    return await createTaskStub(msg);
+    let js_res = await createTaskStub(msg);
+    return pyodide.toPy(js_res);
 };
 
 self.SubmitTask = async (cid, task_name, p_args) => {
     let args = p_args.toJs();
-    let msg = { cid, task_name, p_args }
-    return await submitTaskStub(msg);
+    let msg = { cid, task_name, args }
+    let js_res = await submitTaskStub(msg);
+    return pyodide.toPy(js_res);
 };
 
 self.Get = async (dataref) => {
     let msg = { dataref };
-    return await getStub(msg);
+    let js_res = await getStub(msg);
+    return pyodide.toPy(js_res);
 };
 
 self.Put = async (p_serialized_data) => {
     let serialized_data = p_serialized_data.toJs();
     let msg = { serialized_data };
-    return await putStub(msg);
+    let js_res = await putStub(msg);
+    return pyodide.toPy(js_res);
 };
 
 async function loadPyodideAndPackages() {
@@ -76,18 +80,16 @@ class VolpyDataRef(object):
     def __init__(self, ref:str):
         self.ref = ref
 
-    def get(self):
+    async def get(self):
         '''
         Get the result from the task.
         This method is synchronous and will block until the execution is finished.
         '''
-        task = Get(self.ref)
-        loop = asyncio.get_running_loop()
-        response = loop.run_until_complete(task)
-        if response.status == 0:
-            return task_manager.deserializeData(response.serialized_data)
+        response = await Get(self.ref)
+        if response["status"] == 0:
+            return deserializeData(response["serialized_data"])
         else:
-            raise RuntimeError(response.status)
+            raise RuntimeError(response["status"])
 
     def __reduce_ex__(self, __protocol):
         return (volpy.VolpyDataRef, (self.ref,))
@@ -96,24 +98,21 @@ class VolpyDataRef(object):
         return str(self.ref)
 
 def _generateRemoteFunc(func):
-    def remote(*kwargs) -> VolpyDataRef:
+    async def remote(*kwargs) -> VolpyDataRef:
         serialized_data = serializeData(kwargs)
         cid = getCount()
-        loop = asyncio.get_running_loop()
-        # Blocking won't take long because raylet will generate and send ref back to us
-        response = loop.run_until_complete(SubmitTask(cid, func.__name__, serialized_data))
-        status, ref = response.status, response.dataref
+        response = await SubmitTask(cid, func.__name__, serialized_data)
+        status, ref = response["status"], response["dataref"]
         if status != Status.SUCCESS:
             raise Exception(f"Error creating task: {status}")
         dataRef = VolpyDataRef(ref)
         return dataRef
     return remote
 
-def registerRemote(func):
+async def registerRemote(func):
     serializedTask, module_list = serializeUploadTask(func)
     taskname = func.__name__
-    loop = asyncio.get_running_loop()
-    loop.run_until_complete(CreateTask(taskname, serializedTask, module_list))
+    await CreateTask(taskname, serializedTask, module_list)
     func.remote = _generateRemoteFunc(func)
 
 def serializeData(args):
@@ -130,19 +129,18 @@ def deserializeUploadTask(serializedTask):
     task.remote = _generateRemoteFunc(task)
     return task
 
-def get(dataref):
+async def get(dataref):
     if isinstance(dataref, VolpyDataRef):
-        return dataref.get()
+        return await dataref.get()
     elif isinstance(dataref, str):
-        return VolpyDataRef(dataref).get()
+        return await VolpyDataRef(dataref).get()
     else:
         raise RuntimeError(f'Incorrect type for dataref: got {type(dataref)}, expected str or VolpyDataRef')
 
-def put(data):
+async def put(data):
     serialized_data = serializeData(data)
-    loop = asyncio.get_running_loop()
-    response = loop.run_until_complete(Put(serialized_data))
-    status, ref = response.status, response.dataref
+    response = await Put(serialized_data)
+    status, ref = response["status"], response["dataref"]
     dataRef = VolpyDataRef(ref)
     return dataRef
 
