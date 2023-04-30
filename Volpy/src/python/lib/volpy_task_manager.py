@@ -18,14 +18,11 @@ class VolpyDataRef(object):
     def setup(cls, ipc_caller):
         cls.ipc_caller = ipc_caller
 
-    def get(self):
+    async def get(self):
         '''
         Get the result from the task.
-        This method is synchronous and will block until the execution is finished.
         '''
-        task = self.ipc_caller.Get(self.ref)
-        loop = asyncio.get_running_loop()
-        response = loop.run_until_complete(task)
+        response = await self.ipc_caller.Get(self.ref)
         if response.status == 0:
             return task_manager.deserializeData(response.serialized_data)
         else:
@@ -44,12 +41,11 @@ class TaskManager(object, metaclass=Singleton):
         codepickle.set_config_get_import(True)
 
     def _generateRemoteFunc(self, func):
-        def remote(*kwargs) -> VolpyDataRef:
+        async def remote(*kwargs) -> VolpyDataRef:
             serialized_data = self.serializeData(kwargs)
             cid = counter.getCount()
-            loop = asyncio.get_running_loop()
             # Blocking won't take long because raylet will generate and send ref back to us
-            response = loop.run_until_complete(self.ipc_caller.SubmitTask(cid, func.__name__, serialized_data))
+            response = await self.ipc_caller.SubmitTask(cid, func.__name__, serialized_data)
             status, ref = response.status, response.dataref
             if status != Status.SUCCESS:
                 raise Exception(f"Error creating task: {status}")
@@ -57,11 +53,10 @@ class TaskManager(object, metaclass=Singleton):
             return dataRef
         return remote
 
-    def registerRemote(self, func):
+    async def registerRemote(self, func):
         serializedTask, module_list = self.serializeUploadTask(func)
         taskname = func.__name__
-        loop = asyncio.get_running_loop()
-        loop.run_until_complete(self.ipc_caller.CreateTask(taskname, serializedTask, module_list))
+        await self.ipc_caller.CreateTask(taskname, serializedTask, module_list)
         func.remote = self._generateRemoteFunc(func)
 
     def serializeData(self, args):
@@ -78,18 +73,17 @@ class TaskManager(object, metaclass=Singleton):
         task.remote = self._generateRemoteFunc(task)
         return task
     
-    def get(self, dataref):
+    async def get(self, dataref):
         if isinstance(dataref, VolpyDataRef):
-            return dataref.get()
+            return await dataref.get()
         elif isinstance(dataref, str):
-            return VolpyDataRef(dataref).get()
+            return await VolpyDataRef(dataref).get()
         else:
             raise RuntimeError(f'Incorrect type for dataref: got {type(dataref)}, expected str or VolpyDataRef')
 
-    def put(self, data):
+    async def put(self, data):
         serialized_data = self.serializeData(data)
-        loop = asyncio.get_running_loop()
-        response = loop.run_until_complete(self.ipc_caller.Put(serialized_data))
+        response = await self.ipc_caller.Put(serialized_data)
         status, ref = response.status, response.dataref
         dataRef = VolpyDataRef(ref)
         return dataRef

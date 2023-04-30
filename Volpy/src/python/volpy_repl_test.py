@@ -20,26 +20,26 @@ async def test_repl(i):
                 return i+1
             def task2(i):
                 return i+2
-            volpy.registerRemote(task1)
-            volpy.registerRemote(task2)
+            await volpy.registerRemote(task1)
+            await volpy.registerRemote(task2)
             print("=====================")
 
         case 2:
             print("Test simple task, should return 4")
             def test(i):
                 return i+1
-            volpy.registerRemote(test)
-            a = test.remote(3)
-            print(a.get())
+            await volpy.registerRemote(test)
+            a = await test.remote(3)
+            print(await a.get())
             print("=====================")
 
         case 3:
             print("Test run 10 times (blocking)")
             def test(i):
                 return i+1
-            volpy.registerRemote(test)
+            await volpy.registerRemote(test)
             for i in range(10):
-                print(test.remote(i).get())
+                print(await (await test.remote(i)).get())
             print("=====================")
 
         case 4:
@@ -48,15 +48,15 @@ async def test_repl(i):
             def longTask(i):
                 time.sleep(5)
                 return i+1
-            volpy.registerRemote(longTask)
+            await volpy.registerRemote(longTask)
             ts = []
             for i in range(10):
                 try:
-                    ts.append(longTask.remote(i))
+                    ts.append(await longTask.remote(i))
                 except Exception:
                     pass
             for t in ts:
-                print(t.get())
+                print(await t.get())
             print("=====================")
 
         case 5:
@@ -64,8 +64,8 @@ async def test_repl(i):
             import numpy as np
             def findMax(i):
                 return np.max(i)
-            volpy.registerRemote(findMax)
-            print(findMax.remote(np.array([1,3,7,2])).get())
+            await volpy.registerRemote(findMax)
+            print(await (await findMax.remote(np.array([1,3,7,2]))).get())
             print("=====================")
 
         case 6:
@@ -73,32 +73,32 @@ async def test_repl(i):
             async def callMe(x):
                 await asyncio.sleep(2)
                 return x
-            volpy.registerRemote(callMe)
-            print(callMe.remote(7).get())
+            await volpy.registerRemote(callMe)
+            print(await (await (callMe.remote(7))).get())
             print("=====================")
 
         case 7:
             print("Get and Put from worker [ret: 6]")
-            ref1 = volpy.put(5)
-            def plusOneToRef(ref):
-                d = volpy.get(ref)
+            ref1 = await volpy.put(5)
+            async def plusOneToRef(ref):
+                d = await volpy.get(ref)
                 d = d + 1
-                ref2 = volpy.put(d)
+                ref2 = await volpy.put(d)
                 return ref2
-            volpy.registerRemote(plusOneToRef)
+            await volpy.registerRemote(plusOneToRef)
             # Remote -> get return result (ref) -> getValue from ref
-            print(plusOneToRef.remote(ref1).get().get())
+            print(await (await (await plusOneToRef.remote(ref1)).get()).get())
             print("=====================")
 
         case 8:
             print("Worker calls remote (req: 2+ workers) [ret: 2]")
-            def factorial(i):
+            async def factorial(i):
                 if i > 1:
-                    return i * factorial.remote(i-1).get()
+                    return i * await (await factorial.remote(i-1)).get()
                 else:
                     return 1
-            volpy.registerRemote(factorial)
-            print(factorial.remote(2).get())
+            await volpy.registerRemote(factorial)
+            print(await (await factorial.remote(2)).get())
             print("=====================")
 
 def csv_list(s):
