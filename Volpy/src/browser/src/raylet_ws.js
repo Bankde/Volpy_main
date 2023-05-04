@@ -22,17 +22,15 @@ class VolpyWS extends SimpleWS {
         AcquireWorker: 12,
         FreeWorker: 13,
         WorkerRun: 14,
+        GetWorkerMeta: 15,
+        SaveWorkerMeta: 16,
 
         SaveDataRef: 21,
-        GetData: 22
+        GetData: 22,
+        GetDataMeta: 23
     }
 
     addHandler() {
-        // {"task_name": str, "serialized_task": bytes}
-        // ret: {"status": int}
-        this.setCallback(VolpyWS.API.CreateTask, async (data) => {
-            return await this.createTask(data);
-        });
         // {"cid": int, "worker_id": str, "task_name": str, "args": bytes}
         // ret: {"status": int, "dataref": str}
         // A command to run the task on this node. Behave like running task with ipc.
@@ -41,18 +39,59 @@ class VolpyWS extends SimpleWS {
         this.setCallback(VolpyWS.API.WorkerRun, async (data) => {
             return await this.workerRun(data);
         });
-        // {"dataref": str, "rayletid": str}
-        // ret: {"status": int}
-        // Tell raylet that the pair of dataRef and its location
-        this.setCallback(VolpyWS.API.SaveDataRef, async (data) => {
-            return await this.saveDataRef(data);
-        });
         // {"dataref": str}
         // ret: {"status": int, "serialized_data": bytes}
         // Get data from ref
         this.setCallback(VolpyWS.API.GetData, async (data) => {
             return await this.getData(data);
         });
+
+        /*
+        API to maintain shared data between all raylets
+        - task
+        - worker meta
+        - dataref meta
+        */
+        // {"task_name": str, "serialized_task": bytes}
+        // ret: {"status": int}
+        this.setCallback(VolpyWS.API.CreateTask, async (data) => {
+            return await this.createTask(data);
+        });
+        // {"worker_id": str, "rayletid": str}
+        // ret: {"status": int}
+        // Tell raylet that new worker is registered into the system
+        this.setCallback(VolpyWS.API.SaveWorkerMeta, async (data) => {
+            return await this.saveWorkerMeta(data);
+        });
+        // {"dataref": str, "rayletid": str}
+        // ret: {"status": int}
+        // Tell raylet that the pair of dataRef and its location
+        this.setCallback(VolpyWS.API.SaveDataRef, async (data) => {
+            return await this.saveDataRef(data);
+        });
+        /*
+        GetAllTasks, GetWorkerMeta, GetDataMeta is omitted.
+        Current system only calls these API to the main volpy server.
+        These API are ok in browser when fully decentralized, P2P feature is introduced.
+        */
+    }
+
+    _encodeB64ToByte(data) {
+        let raw_data = atob(data);
+        let dataArr = new Uint8Array(raw_data.length);
+        for (let i=0; i<raw_data.length; i++) {
+            dataArr[i] = raw_data.charCodeAt(i);
+        }
+        return dataArr
+    }
+
+    _encodeByteToB64(raw_data) {
+        let s = [];
+        for (let i=0; i<raw_data.length; i++) {
+            s.push(String.fromCharCode(raw_data[i]));
+        }
+        let b64_data = btoa(s.join(''));
+        return b64_data;
     }
 
     addDataCallback() {
@@ -63,12 +102,12 @@ class VolpyWS extends SimpleWS {
             }
             for (const key of targetData) {
                 if (key in data) {
-                    let raw_data = atob(data[key]);
-                    let dataArr = new Uint8Array(raw_data.length);
-                    for (let i=0; i<raw_data.length; i++) {
-                        dataArr[i] = raw_data.charCodeAt(i);
-                    }
-                    data[key] = dataArr;
+                    data[key] = this._encodeB64ToByte(data[key]);
+                }
+            }
+            if (data.hasOwnProperty("all_tasks")) {
+                for (let i=0; i < data["all_tasks"].length; i++) {
+                    data["all_tasks"][i]["serialized_task"] = this._encodeB64ToByte(data["all_tasks"][i]["serialized_task"]);
                 }
             }
             return data
@@ -79,13 +118,12 @@ class VolpyWS extends SimpleWS {
             }
             for (const key of targetData) {
                 if (key in data) {
-                    let s = [];
-                    let raw_data = data[key];
-                    for (let i=0; i<raw_data.length; i++) {
-                        s.push(String.fromCharCode(raw_data[i]));
-                    }
-                    let b64_data = btoa(s.join(''));
-                    data[key] = b64_data;
+                    data[key] = this._encodeByteToB64(data[key]);
+                }
+            }
+            if (data.hasOwnProperty("all_tasks")) {
+                for (let i=0; i < data["all_tasks"].length; i++) {
+                    data["all_tasks"][i]["serialized_task"] = this._encodeByteToB64(data["all_tasks"][i]["serialized_task"]);
                 }
             }
             return data
@@ -130,6 +168,15 @@ class VolpyWS extends SimpleWS {
         let response = await this.broadcast(this.API.SaveDataRef, msg);
         let msg_obj = { "status": Status.SUCCESS, "dataref": ref };
         return msg_obj
+    }
+
+    async saveWorkerMeta(data) {
+        let { worker_id, rayletid } = data;
+        if (this.scheduler.getWorkerById(worker_id) != null) {
+            this.scheduler.addWorkerWithId(worker_id, rayletid, Connection.WS);
+        }
+        msg_obj = { "status": Status.SUCCESS };
+        return msg_obj;
     }
 
     async saveDataRef(data) {

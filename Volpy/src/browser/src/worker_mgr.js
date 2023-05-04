@@ -79,13 +79,16 @@ export class VolpyWorker {
       // So we still set worker id here; the rayletws will only be set in main raylet.
       let worker = this.scheduler.addWorkerWithId(worker_id, this, Connection.THREAD);
       logging(`Worker connected (side,thread): ${worker.getId()}`);
+      msg = { "worker_id": worker.getId(), "rayletid": this.raylet_ws.getId() };
+      response = await this.raylet_ws.broadcast(this.raylet_ws.API.SaveWorkerMeta, msg);
       return { "status": Status.SUCCESS };
     }, opts);
 
     expose('GetAllTasks', async (data) => {
-      // All webworker should be initialized at the same time as browser raylet
-      // So this API should not be called
-      throw new Exception("Impossible flow");
+      logging("Recv ipc: GetAllTasks");
+      let all_tasks = scheduler.getAllTasks();
+      // Unlike python, we can send dict and array through postMessage
+      return all_tasks;
     }, opts);
 
     expose('Get', async (data) => {

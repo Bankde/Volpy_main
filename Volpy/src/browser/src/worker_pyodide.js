@@ -21,7 +21,7 @@ const opts = {
 self.Status = Status;
 const createTaskStub = caller('CreateTask', opts);
 const submitTaskStub = caller('SubmitTask', opts);
-// getAllTaskStrub = caller('GetAllTasks', opts); // Shouldn't be used unless we introduce worker killing/reset.
+const getAllTasksStub = caller('GetAllTasks', opts);
 const getStub = caller('Get', opts);
 const putStub = caller('Put', opts);
 
@@ -183,13 +183,8 @@ async def executeTask(task_name, serialized_data):
 }
 let pyodideReadyPromise = loadPyodideAndPackages();
 
-// const py_initTask = pyodide.globals.get("initTask");
-// const executeTask = pyodide.globals.get("executeTask");
-
-expose('InitTask', async (data) => {
+async function initTask(task_name, serialized_task, module_list) {
     const py_initTask = pyodide.globals.get("initTask");
-    let { task_name, serialized_task, module_list } = data;
-    logging(`Recv InitTask: ${task_name}`);
     let tasks = [];
     module_list.forEach((module) => {
         // Use loop so we can't filter/handle error separately
@@ -201,6 +196,13 @@ expose('InitTask', async (data) => {
     await self.micropip.install(module_list);
     let p_serialized_task = pyodide.toPy(serialized_task);
     await py_initTask(task_name, p_serialized_task);
+    return 0;
+}
+
+expose('InitTask', async (data) => {
+    let { task_name, serialized_task, module_list } = data;
+    logging(`Recv InitTask: ${task_name}`);
+    await initTask(task_name, serialized_task, module_list);
     return 0;
 }, opts);
 
@@ -217,7 +219,12 @@ expose('RunTask', async (data) => {
     return msg;
 }, opts);
 
-pyodideReadyPromise.then((result) => {
+pyodideReadyPromise.then(async (result) => {
+    let all_tasks = await getAllTasksStub();
+    for (let task_name in all_tasks) {
+        let [ serialized_task, module_list ] = all_tasks[task_name];
+        await initTask(task_name, serialized_task, module_list);
+    }
     // call initWorker after finishing everything.
-    (caller('InitWorker', opts))();
+    await (caller('InitWorker', opts))();
 });

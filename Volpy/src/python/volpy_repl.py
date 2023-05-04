@@ -29,7 +29,7 @@ if __name__ == '__main__':
     volpy_task_manager.TaskManager().setup(ipc_caller)
     volpy.setup(volpy_task_manager)
     globals = {
-        'Volpy': Volpy
+        'volpy': volpy
     }
     loop.run_until_complete(driver_repl.start_repl(loop, globals))
     loop.stop()

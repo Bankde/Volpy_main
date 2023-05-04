@@ -92,6 +92,8 @@ class TaskRunner(raylet_pb2_grpc.VolpyServicer):
             ipc_caller.connect(f'localhost:{workeripc}')
             worker = scheduler.addWorkerWithId(new_worker_id, connection=ipc_caller, connectionType=Connection.IPC)
             logging.info(f'Worker connected (side,ipc): {worker.getId()} ipc {workeripc}')
+        msg = {"worker_id": worker.getId(), "rayletid": raylet_ws.getId()}
+        resp = await raylet_ws.broadcast(raylet_ws.API.SaveWorkerMeta, msg)
         return raylet_pb2.Status(status=Status.SUCCESS)
     
     async def GetAllTasks(self, request, context):

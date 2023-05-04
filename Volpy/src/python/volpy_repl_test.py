@@ -25,11 +25,16 @@ async def test_repl(i):
             print("=====================")
 
         case 2:
-            print("Test simple task, should return 4")
+            print("Test simple task, should return 4 and 4")
             def test(i):
                 return i+1
             await volpy.registerRemote(test)
             a = await test.remote(3)
+            print(await a.get())
+            def test():
+                return 4
+            await volpy.registerRemote(test)
+            a = await test.remote()
             print(await a.get())
             print("=====================")
 

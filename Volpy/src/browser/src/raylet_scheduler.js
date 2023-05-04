@@ -51,9 +51,21 @@ export class Scheduler {
         this.rr = 0;
         this.tasks = {};
     }
+
+    initWithData(all_workers) {
+        all_workers.forEach((worker) => {
+            this.addWorkerWithId(worker["id"], worker["rayletid"], Connection.WS);
+        });
+    }
   
     saveTask(task_name, serialized_task, module_list) {
         this.tasks[task_name] = [serialized_task, module_list];
+    }
+
+    saveAllTasks(all_tasks) {
+        all_tasks.forEach((taskData) => {
+            this.saveTask(taskData["task_name"], taskData["serialized_task"], taskData["module_list"]);
+        });
     }
   
     getAllTasks() {
@@ -137,6 +149,12 @@ class VolpyData {
 export class Datastore {
     constructor() {
         this.dict = {};
+    }
+    
+    initWithData(all_data) {
+        all_data.forEach((data) => {
+            this.putLoc(data["dataref"], data["rayletid"]);
+        });
     }
   
     get(ref) {

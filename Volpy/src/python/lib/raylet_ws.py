@@ -25,17 +25,28 @@ class VolpyWS(SimpleWS):
         AcquireWorker = 12
         FreeWorker = 13
         WorkerRun = 14
+        GetWorkerMeta = 15
+        SaveWorkerMeta = 16
 
         SaveDataRef = 21
         GetData = 22
+        GetDataMeta = 23
 
     def addHandler(self):
-        # {"task_name": str, "serialized_task": bytes, "module_list": [str]}
-        # ret: {"status": int}
-        self.setCallback(self.API.CreateTask, self.createTask)
-        # {}
-        # ret: {"all_tasks": list<name, bytes, [str]>}
-        self.setCallback(self.API.GetAllTasks, self.getAllTasks)
+        # {"cid": int, "worker_id": str, "task_name": str, "args": bytes}
+        # ret: {"status": int, "dataref": str}
+        # A command to run the task on this node. Behave like running task with ipc.
+        # Will broadcast dataref to other nodes with its rayletid.
+        # Return dataref, the result data of the task will store locally.
+        self.setCallback(self.API.WorkerRun, self.workerRun)
+        # {"dataref": str}
+        # ret: {"status": int, "serialized_data": bytes}
+        # Get data from ref
+        self.setCallback(self.API.GetData, self.getData)
+
+        '''
+        API for main volpy
+        '''
         # {"cid": int, "task_name": str, "args": bytes}
         # ret: {"status": int, "worker_id": str} 
         # Acquire worker from main raylet. Lock the worker.
@@ -44,25 +55,41 @@ class VolpyWS(SimpleWS):
         # ret: {"status": int}
         # Unlock the worker.
         self.setCallback(self.API.FreeWorker, self.freeWorker)
-        # {"cid": int, "worker_id": str, "task_name": str, "args": bytes}
-        # ret: {"status": int, "dataref": str}
-        # A command to run the task on this node. Behave like running task with ipc.
-        # Will broadcast dataref to other nodes with its rayletid.
-        # Return dataref, the result data of the task will store locally.
-        self.setCallback(self.API.WorkerRun, self.workerRun)
         # {"rayletid": str}
         # ret: {"status": int, "worker_id": str}
         # Tell the main raylet that new worker has been connected.
         # The scheduler will save worker in the list and return the new assigned Id
         self.setCallback(self.API.InitWorker, self.initWorker)
+
+        '''
+        API to maintain shared data between all raylets
+        - task
+        - worker meta
+        - dataref meta
+        '''
+        # {"task_name": str, "serialized_task": bytes, "module_list": [str]}
+        # ret: {"status": int}
+        self.setCallback(self.API.CreateTask, self.createTask)
+        # {}
+        # ret: {"all_tasks": List[Dict<task_name, serialized_task, List[str]>]}
+        # Return all tasks
+        self.setCallback(self.API.GetAllTasks, self.getAllTasks)
+        # {}
+        # ret: {"all_workers": List[Dict<id, rayletid>]}
+        # Return all worker metadata
+        self.setCallback(self.API.GetWorkerMeta, self.getWorkerMeta)
+        # {"worker_id": str, "rayletid": str}
+        # ret: {"status": int}
+        # Tell raylet that new worker is registered into the system
+        self.setCallback(self.API.SaveWorkerMeta, self.saveWorkerMeta)
         # {"dataref": str, "rayletid": str}
         # ret: {"status": int}
         # Tell raylet that the pair of dataRef and its location
         self.setCallback(self.API.SaveDataRef, self.saveDataRef)
-        # {"dataref": str}
-        # ret: {"status": int, "serialized_data": bytes}
-        # Get data from ref
-        self.setCallback(self.API.GetData, self.getData)
+        # {}
+        # ret: {"all_data": List[Dict<dataref, rayletid>]}
+        # Return all data metadata
+        self.setCallback(self.API.GetDataMeta, self.getDataMeta)
 
     def addDataCallback(self):
         def recvConversion(data):
@@ -71,6 +98,9 @@ class VolpyWS(SimpleWS):
             for key in ["serialized_task", "serialized_data", "args"]:
                 if key in data:
                     data[key] = base64.b64decode(data[key])
+            if "all_tasks" in data:
+                for i in range(len(data["all_tasks"])):
+                    data["all_tasks"][i]["serialized_task"] = base64.b64decode(data["all_tasks"][i]["serialized_task"])
             return data
         def sendConversion(data):
             if data == None:
@@ -79,6 +109,9 @@ class VolpyWS(SimpleWS):
                 if key in data:
                     # byte --[base64]-->  byte --[decode_to_str]--> str
                     data[key] = (base64.b64encode(data[key])).decode('ascii')
+            if "all_tasks" in data:
+                for i in range(len(data["all_tasks"])):
+                    data["all_tasks"][i]["serialized_task"] = (base64.b64encode(data["all_tasks"][i]["serialized_task"])).decode('ascii')
             return data
         self.dataRecvCallback = recvConversion
         self.dataSendCallback = sendConversion
@@ -110,8 +143,8 @@ class VolpyWS(SimpleWS):
         all_tasks = scheduler.getAllTasks()
         all_tasks_arr = []
         for task in all_tasks:
-            serialized_data, module_list = all_tasks[task]
-            all_tasks_arr.append((task, serialized_data, module_list))
+            serialized_task, module_list = all_tasks[task]
+            all_tasks_arr.append({"task_name": task, "serialized_task": serialized_task, "module_list": module_list})
         msg_obj = {"all_tasks": all_tasks_arr}
         return msg_obj
 
@@ -160,6 +193,25 @@ class VolpyWS(SimpleWS):
         msg_obj = {"status": Status.SUCCESS, "worker_id": worker.getId()}
         return msg_obj
 
+    async def getWorkerMeta(self, data):
+        # This API should be called before that node init any workers.
+        workers = scheduler.getAllWorkers()
+        worker_meta = []
+        for worker in workers:
+            if worker.connectionType == Connection.IPC:
+                worker_meta.append({"id": worker.getId(), "rayletid": self.getId()})
+            else:
+                worker_meta.append({"id": worker.getId(), "rayletid": worker.connection})
+        msg_obj = {"all_workers": worker_meta}
+        return msg_obj
+
+    async def saveWorkerMeta(self, data):
+        worker_id, rayletid = data["worker_id"], data["rayletid"]
+        if (scheduler.getWorkerById(worker_id) == None):
+            scheduler.addWorkerWithId(worker_id, rayletid, Connection.WS)
+        msg_obj = {"status": Status.SUCCESS}
+        return msg_obj
+
     async def saveDataRef(self, data):
         ref, rayletid = data["dataref"], data["rayletid"]
         logging.info(f'Recv dataref: {ref} {rayletid}')
@@ -177,6 +229,19 @@ class VolpyWS(SimpleWS):
             datastore.saveVal(ref, val=response.serialized_data, status=response.status)
         status, val = datastore.get(ref)
         msg_obj = {"status": status, "serialized_data": val}
+        return msg_obj
+    
+    async def getDataMeta(self, data):
+        all_data = datastore.dict
+        data_meta = []
+        for ref in all_data:
+            data = all_data[ref]
+            if data.loc:
+                data_meta.append({"dataref": ref, "rayletid": data.loc})
+            else:
+                # Either future (still running) or has val (finished)
+                data_meta.append({"dataref": ref, "rayletid": self.getId()})
+        msg_obj = {"all_metadata": data_meta}
         return msg_obj
 
 def volpy_ws_create_session_runner(uuid, router, realm=None, is_main=False, logger=logging):

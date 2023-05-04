@@ -43,16 +43,20 @@ if __name__ == '__main__':
     loop.run_until_complete(asyncio.sleep(1))
 
     # Link ipc and websocket module (Only for raylet, to prevent circular import)
-    from lib.raylet_scheduler import scheduler
+    from lib.raylet_scheduler import scheduler, datastore
     from lib.raylet_ipc_caller import Raylet_IPCCaller
     raylet_ipc.setup(session)
-    # Get all declared tasks before joining
+    # Sync all data (tasks, workers, metadata) before joining
     if not config.main:
         response = loop.run_until_complete(session.send(session.getMainId(), session.API.GetAllTasks, {}))
         all_tasks = response.all_tasks
-        for taskData in all_tasks:
-            task_name, serialized_task, module_list = taskData
-            scheduler.saveTask(task_name, serialized_task, module_list)
+        scheduler.saveAllTasks(all_tasks)
+        response = loop.run_until_complete(session.send(session.getMainId(), session.API.GetWorkerMeta, {}))
+        all_worker_meta = response.all_workers
+        scheduler.initWithData(all_worker_meta)
+        response = loop.run_until_complete(session.send(session.getMainId(), session.API.GetDataMeta, {}))
+        all_data_meta = response.all_metadata
+        datastore.initWithData(all_data_meta)
 
     # Spawn workers
     raylet_pid = os.getpid()

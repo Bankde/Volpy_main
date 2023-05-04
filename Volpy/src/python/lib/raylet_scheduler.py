@@ -53,8 +53,16 @@ class Scheduler(object, metaclass=Singleton):
         self.rr = 0
         self.tasks: Dict[str, tuple[bytes, List[str]]] = {}
 
+    def initWithData(self, all_workers: List):
+        for worker in all_workers:
+            self.addWorkerWithId(worker["id"], worker["rayletid"], Connection.WS)
+
     def saveTask(self, task_name: str, serialized_task: bytes, module_list: List[str]):
         self.tasks[task_name] = (serialized_task, module_list)
+
+    def saveAllTasks(self, all_tasks: List):
+        for taskData in all_tasks:
+            self.saveTask(taskData["task_name"], taskData["serialized_task"], taskData["module_list"])
 
     def getAllTasks(self) -> Dict[str, tuple[bytes, List[str]]]:
         return self.tasks
@@ -124,6 +132,10 @@ class Datastore(object, metaclass=Singleton):
 
     def __init__(self):
         self.dict = {}
+
+    def initWithData(self, all_data: List):
+        for data in all_data:
+            self.putLoc(data["dataref"], data["rayletid"])
 
     def get(self, ref:str) -> tuple[int, Any]:
         '''

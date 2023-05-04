@@ -10,6 +10,13 @@ class ExecutionError(Exception):
 class SerializationError(Exception):
     pass
 
+def initTasks(all_tasks):
+    for task in all_tasks:
+        task_name = task.task_name
+        serialized_task = task.serialized_task
+        module_list = task.module_list
+        initTask(task_name, serialized_task, module_list)
+
 def initTask(task_name, serialized_task, module_list=None):
     tasklist[task_name] = task_manager.deserializeUploadTask(serialized_task)
 

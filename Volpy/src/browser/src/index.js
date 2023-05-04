@@ -34,9 +34,18 @@ async function runNode() {
     // Waiting til raylet_ws connected, may improve later.
     await new Promise(r => setTimeout(r, 1000));
 
+    let all_tasks = (await session.send(session.getMainId(), session.API.GetAllTasks, {})).all_tasks;
+    scheduler.saveAllTasks(all_tasks);
+    let all_worker_meta = (await session.send(session.getMainId(), session.API.GetWorkerMeta, {})).all_workers;
+    scheduler.initWithData(all_worker_meta);
+    let all_data_meta = (await session.send(session.getMainId(), session.API.GetDataMeta, {})).all_metadata;
+    datastore.initWithData(all_data_meta)
+
     let workers = [];
     for (let i=0; i<workerNum; i++) {
         let worker = new VolpyWorker(session, scheduler, datastore);
         workers.push(worker);
     }
+
+    logging("Setup Browser Raylet finish")
 }
