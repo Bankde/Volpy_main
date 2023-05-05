@@ -170,7 +170,6 @@ async def executeTask(task_name, serialized_data):
             # TODO: try asyncio.to_thread
             ret = task(*kwargs)
     except Exception as e:
-        raise
         err_msg = traceback.format_exc()
         print(err_msg) # So programmer knows what's wrong.
         return [Status.EXECUTION_ERROR, b""]

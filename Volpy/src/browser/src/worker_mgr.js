@@ -55,7 +55,7 @@ export class VolpyWorker {
         return { "status": Status.WORKER_BUSY, "dataref": "" };
       }
 
-      let dataref = null;
+      let dataref, status;
       logging(`Worker acquire: ${cid} ${worker.getId()}`);
       if (worker.getConnectionType() == Connection.THREAD) {
         dataref = generateDataRef();
@@ -66,6 +66,8 @@ export class VolpyWorker {
         response = await this.raylet_ws.broadcast(this.raylet_ws.API.SaveDataRef, msg);
       } else {
         response = await SharedLogic.runTaskRemote(this.raylet_ws, worker, cid, task_name, args);
+        status = response.status
+        dataref = response.dataref
       }
       logging(`Generate ref: ${cid} ${dataref}`);
       return { "status": Status.SUCCESS, "dataref": dataref };

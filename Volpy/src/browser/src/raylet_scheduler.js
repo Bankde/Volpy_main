@@ -243,7 +243,7 @@ async function runTaskRemote(raylet_ws, worker, cid, task_name, args) {
         throw new Error(`Incorrect connectionType: ${worker.getConnectionType()}`);
     }
     const msg = { "cid": cid, "worker_id": worker.idx, "task_name": task_name, "args": args };
-    const response = await raylet_ws.send(worker.connection.rayletid, raylet_ws.API.WorkerRun, msg);
+    const response = await raylet_ws.send(worker.connection, raylet_ws.API.WorkerRun, msg);
     return response;
 }
 

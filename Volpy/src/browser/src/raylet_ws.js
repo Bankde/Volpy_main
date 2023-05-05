@@ -172,10 +172,10 @@ class VolpyWS extends SimpleWS {
 
     async saveWorkerMeta(data) {
         let { worker_id, rayletid } = data;
-        if (this.scheduler.getWorkerById(worker_id) != null) {
+        if (this.scheduler.getWorkerById(worker_id) == null) {
             this.scheduler.addWorkerWithId(worker_id, rayletid, Connection.WS);
         }
-        msg_obj = { "status": Status.SUCCESS };
+        let msg_obj = { "status": Status.SUCCESS };
         return msg_obj;
     }
 
