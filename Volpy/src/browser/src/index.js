@@ -4,6 +4,8 @@ import { VolpyWorker } from './worker_mgr.js';
 import { Scheduler, Datastore } from './raylet_scheduler';
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Update wssAddr to the server domain
+    document.getElementById("wssAddr").value = "ws://" + window.location.host.split(":")[0] + ":8080/ws";
     // Update recommend workerNum from hardware
     const cpuCount = navigator.hardwareConcurrency;
     document.getElementById("cpuCountRecommend").innerHTML = `(Rec: ${cpuCount})`;
