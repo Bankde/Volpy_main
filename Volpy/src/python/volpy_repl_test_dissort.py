@@ -5,7 +5,7 @@ nest_asyncio.apply()
 from lib import driver_repl, volpy_task_manager
 from lib.repl_ipc_caller import ipc_caller
 from lib.config import config
-import lib.volpy_task_manager as Volpy
+import volpy
 
 import argparse
 import logging, sys
@@ -61,7 +61,7 @@ def quick_sort_single_core(collection):
 async def test_repl(i=0):
     np.random.seed(0)
     unsorted = np.random.randint(100000, size=(TotalSortNum)).tolist()
-    await Volpy.registerRemote(quick_sort_distributed)
+    await volpy.registerRemote(quick_sort_distributed)
     t1 = time.time()
     sort = await (await quick_sort_distributed.remote(unsorted)).get()
     t2 = time.time()
@@ -95,6 +95,7 @@ if __name__ == '__main__':
     ipc_caller.connect(config.rayletipc_addr) # Establish channel with raylet
     loop.run_until_complete(ipc_caller.waitReady())
     volpy_task_manager.TaskManager().setup(ipc_caller)
+    volpy.setup(volpy_task_manager)
 
     loop.run_until_complete(test_repl(config.i))
     loop.stop()

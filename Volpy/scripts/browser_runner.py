@@ -7,7 +7,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import time
 import sys
 
-if len(sys.argv) != 2:
+if len(sys.argv) < 2:
     raise Exception("Please specify the URL of web to open")
 URL = sys.argv[1]
 
@@ -23,6 +23,10 @@ driver.set_script_timeout(10000000);
 driver.execute("get", {'url': URL})
 print("Open the web")
 
+if len(sys.argv) == 3:
+    print("worker count: %s" % sys.argv[2])
+    coreInput = WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.ID, "workerNum")))
+    coreInput.send_keys(sys.argv[2])
 WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.ID, "runNodeBtn"))).click()
 print("Connection started")
 

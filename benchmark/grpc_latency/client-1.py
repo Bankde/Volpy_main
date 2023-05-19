@@ -14,20 +14,32 @@ async def test():
     t1 = timer()
     r = await stub.Ping(None)
     t2 = timer()
-    print("First: %.3f" % ((t2-t1)*1000))
+    time1 = (t2-t1)*1000
+    # print("First: %.3f" % (time1))
 
     time.sleep(1)
 
     t1 = timer()
     r = await stub.Ping(None)
     t2 = timer()
-    print("Second: %.3f" % ((t2-t1)*1000))
+    time2 = (t2-t1)*1000
+    # print("Second: %.3f" % (time2))
 
     t1 = timer()
     for i in range(100):
         r = await stub.Ping(None)
     t2 = timer()
-    print("After: %.3f" % ((t2-t1)*1000/100))
+    time3 = (t2-t1)*1000/100
+    # print("After: %.3f" % (time3))
+    return (time1,time2,time3)
 
 if __name__ == '__main__':
-    asyncio.run(test())
+    tt1, tt2, tt3 = [], [], []
+    for i in range(100):
+      t1,t2,t3 = asyncio.run(test())
+      tt1.append(t1)
+      tt2.append(t2)
+      tt3.append(t3)
+    print(tt1)
+    print(tt2)
+    print(tt3)
