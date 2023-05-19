@@ -240,6 +240,9 @@
             name: file:///home/bankde/Volpy_main/Volpy/src/python/volpy_wrapper
 
     - name: Create crossbar router docker image
+      become: true
+      become_exe: "sudo su -"
+      become_method: su
       shell:
         cmd: docker build -t router -f Dockerfile .
         chdir: /home/bankde/Volpy_main/Volpy/src/router/

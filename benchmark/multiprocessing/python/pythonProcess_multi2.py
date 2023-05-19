@@ -54,6 +54,9 @@ async def test():
         stub = grpc_pb2_grpc.TaskStub(channel)
         stubs.append(stub)
 
+    for i in range(CORE):
+        await channels[i].channel_ready()
+
     t1 = timer()
     tasks = []
     for stub in stubs:
@@ -76,11 +79,15 @@ async def test():
     pi = 4 * circle_points / square_points
     # print('PI result: {}'.format(pi))
     print('Time taken: {} ms'.format((t2-t1)*1000))
+
+    for i in range(CORE):
+        await channels[i].close()
+
     return (t2-t1)*1000
 
 if __name__ == '__main__':
     ts = []
-    for i in range(10):
+    for i in range(100):
         ts.append(asyncio.run(test()))
     import json
     with open("result.json", "w") as f:

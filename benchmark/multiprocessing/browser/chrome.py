@@ -3,6 +3,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.common.by import By
 import time
+import sys
 
 d = DesiredCapabilities.CHROME
 d['goog:loggingPrefs'] = {'browser': 'ALL'}
@@ -13,7 +14,7 @@ chrome_options.add_argument('--headless')
 chrome_options.add_argument('--no-sandbox')
 driver = webdriver.Chrome(options=chrome_options, desired_capabilities=d)
 driver.set_script_timeout(10000000);
-driver.get("file:///home/bankde/benchmark/performance/matmul/pyodide/pyodide.html")
+driver.get("file://%s" % sys.argv[1])
 
 while driver.title != "Done":
     time.sleep(3)
