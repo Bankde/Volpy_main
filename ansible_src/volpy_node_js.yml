@@ -1,0 +1,182 @@
+---
+
+- name: Setup benchmark node 
+  hosts: 'all'
+  roles:
+    - role: evandam.conda
+  tasks:
+    - name: root install
+      become: true 
+      become_exe: "sudo su -"
+      become_method: su
+      block:
+      - name: Update and upgrade apt
+        register: updatesys
+        apt:
+          name: "*"
+          state: latest
+          update_cache: yes
+
+      - name: Install apt
+        apt:
+          name:
+            - unzip
+            - bzip2
+            - libdbus-glib-1-2
+            - libegl1-mesa
+            - gcc
+            - g++
+            - python3-pip
+            - build-essential
+            - libssl-dev
+            - libffi-dev
+            - python-dev
+            - git
+            - screen
+
+    - name: Init .vimrc
+      become: true
+      become_user: bankde
+      copy:
+        content: "set smartindent\nset tabstop=2\nset expandtab\nset shiftwidth=2"
+        dest: /home/bankde/.vimrc
+
+    - name: Check conda exist
+      stat:
+        path: /home/bankde/.conda/bin/conda
+      register: conda
+
+    - name: Install Conda
+      become: true
+      become_user: bankde
+      block:
+        - name: Download
+          get_url: 
+            url: https://repo.anaconda.com/archive/Anaconda3-2022.05-Linux-x86_64.sh
+            dest: /tmp/conda.sh
+            mode: '775'
+        - name: Run the installer
+          shell: bash /tmp/conda.sh -b -p /home/bankde/.conda
+        - name: Add conda bin to path
+          shell: echo 'export PATH=/home/bankde/.conda/bin:$PATH' >> /home/bankde/.bashrc
+        - name: Init
+          shell: /home/bankde/.conda/bin/conda init --all
+      when: not conda.stat.exists
+
+    - name: Install pyopenssl
+      pip:
+        name:
+          - pyopenssl
+
+    - name: Update conda and pip
+      become: true
+      become_user: bankde
+      block:
+        - name: Update conda
+          conda:
+            name: conda
+            state: latest
+            executable: /home/bankde/.conda/bin/conda
+        - name: Check conda env exist
+          stat:
+            path: /home/bankde/.conda/envs/Volpy
+          register: Volpy 
+        - name: Create conda env
+          conda:
+            name: python
+            version: '3.10'
+            environment: Volpy 
+            state: present
+            executable: /home/bankde/.conda/bin/conda
+          when: not Volpy.stat.exists
+        - name: Conda pip install
+          pip:
+            executable: /home/bankde/.conda/envs/Volpy/bin/pip
+            name:
+              - ray==1.13.0
+              - requests
+              - scipy==1.8.1
+              - selenium
+              - matplotlib
+              - jupyter
+              - cloudpickle==2.1.0
+              - dill==0.3.5.1
+              - aiohttp
+              - python-socketio
+              - pyopenssl
+              - pandas
+              - ipython
+              - grpcio
+              - autobahn
+              - bidict
+              - addict
+
+    - name: Check opt/bin directory
+      stat:
+        path: /opt/bin
+      register: optbin
+
+    - name: Create opt/bin directory
+      become: true
+      become_exe: "sudo su -"
+      become_method: su
+      file:
+        path: /opt/bin
+        state: directory
+        mode: '777' # Test server
+
+    - name: Add optbin to profile
+      become: true
+      become_user: bankde
+      shell: echo 'export PATH=/opt/bin:/opt/bin/firefox:$PATH' >> /home/bankde/.bashrc
+      when: not optbin.stat.exists
+
+    - name: Install chrome and firefox
+      become: true
+      become_exe: "sudo su -"
+      become_method: su
+      block:
+        - get_url: url="https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_103.0.5060.53-1_amd64.deb" dest="/tmp/chrome.deb"
+        - get_url: url="https://chromedriver.storage.googleapis.com/103.0.5060.53/chromedriver_linux64.zip" dest="/tmp/chromedriver.zip"
+        - shell: apt install -y --allow-downgrades /tmp/chrome.deb
+        - shell: unzip -o /tmp/chromedriver.zip -d /opt/bin/
+        - get_url: url="https://ftp.mozilla.org/pub/firefox/releases/102.0esr/linux-x86_64/en-US/firefox-102.0esr.tar.bz2" dest="/tmp/firefox.tar.bz2"
+        - get_url: url="https://github.com/mozilla/geckodriver/releases/download/v0.31.0/geckodriver-v0.31.0-linux64.tar.gz" dest="/tmp/geckodriver.tar.gz"
+        - shell: tar xvf /tmp/firefox.tar.bz2 -C /opt/bin/
+        - shell: tar xvf /tmp/geckodriver.tar.gz -C /opt/bin/
+
+    - name: Setup jupyter
+      block:
+        - name: Setup config
+          shell: /home/bankde/.conda/bin/jupyter notebook --generate-config -y
+          args:
+            chdir: /home/bankde
+        - name: Edit config 
+          replace:
+            path: /home/bankde/.jupyter/jupyter_notebook_config.py
+            regexp: "# c.NotebookApp.ip = 'localhost'"
+            replace: "c.NotebookApp.ip = '{{ ansible_default_ipv4.address }}'" 
+        - name: Create key for jupyter 
+          block:
+            - openssl_privatekey:
+                path: /home/bankde/mykey.key 
+                size: 2048
+            - openssl_csr:
+                path: /home/bankde/mycsr.csr 
+                privatekey_path: /home/bankde/mykey.key 
+            - openssl_certificate:
+                provider: selfsigned
+                path: /home/bankde/mycert.pem
+                privatekey_path: /home/bankde/mykey.key 
+                csr_path: /home/bankde/mycsr.csr 
+      become: true 
+      become_user: bankde
+
+    - name: Clone work
+      become: true
+      become_user: bankde
+      block:
+        - name: clone Volpy
+          git:
+            repo: 'https://github.com/Bankde/Volpy_main.git'
+            dest: /home/bankde/Volpy_main
