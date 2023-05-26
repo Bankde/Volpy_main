@@ -14,7 +14,7 @@ chrome_options.add_argument('--headless')
 chrome_options.add_argument('--no-sandbox')
 driver = webdriver.Chrome(options=chrome_options, desired_capabilities=d)
 driver.set_script_timeout(10000000);
-driver.get("file://%s" % sys.argv[1])
+driver.get("%s" % sys.argv[1])
 
 while driver.title != "Done":
     time.sleep(3)

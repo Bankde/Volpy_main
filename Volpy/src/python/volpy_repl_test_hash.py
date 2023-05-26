@@ -80,7 +80,7 @@ async def test_repl(i=0):
     match i:
         case 1:
             all_time = []
-            for j in range(30):
+            for j in range(100):
                 t1 = timer()
                 r = hashSearchFromWordSubs_single("computerengineer", "", 0, subs, h)
                 t2 = timer()
@@ -93,7 +93,7 @@ async def test_repl(i=0):
         case 2:
             all_time = []
             await volpy.registerRemote(hashSearchFromWordSubs_dist)
-            for j in range(30):
+            for j in range(100):
                 t1 = timer()
                 p = await hashSearchFromWordSubs_dist.remote("computerengineer", "", 0, subs, h, True)
                 r = await p.get()
